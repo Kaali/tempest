@@ -1,0 +1,4 @@
+name: tempest
+dependencies:
+  browser: any
+  vector_math: any
