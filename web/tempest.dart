@@ -29,12 +29,16 @@ double timestamp() {
 class Box {
   Shader shader;
   WebGL.UniformLocation cameraTransformLocation;
+  WebGL.UniformLocation modelTransformLocation;
   int positionAttributeIndex;
   int texCoordIndex;
   VertexUVBuffer vertexUVBuffer;
+  Vector3 position;
+  double time;
 
   Box() {
-
+    time = 0.0;
+    position = new Vector3(0.0, 0.0, -1.0);
   }
 
   void setup(WebGL.RenderingContext glContext) {
@@ -61,11 +65,12 @@ class Box {
     attribute vec3 aPosition;
     attribute vec2 aTexCoord;
     uniform mat4 uCameraTransform;
+    uniform mat4 uModelTransform;
 
     varying vec2 vTexCoord;
 
     void main(void) {
-      vec4 pos = vec4(aPosition.x, aPosition.y, aPosition.z, 1.0);
+      vec4 pos = uCameraTransform * uModelTransform * vec4(aPosition, 1.0);
       gl_Position = pos;
       vTexCoord = aTexCoord;
     }
@@ -95,6 +100,8 @@ class Box {
 
     cameraTransformLocation = glContext.getUniformLocation(shader.program,'uCameraTransform');
     assert(cameraTransformLocation != -1);
+    modelTransformLocation = glContext.getUniformLocation(shader.program,'uModelTransform');
+    assert(modelTransformLocation != -1);
     positionAttributeIndex = glContext.getAttribLocation(shader.program, 'aPosition');
     assert(positionAttributeIndex != -1);
     texCoordIndex = glContext.getAttribLocation(shader.program, 'aTexCoord');
@@ -102,12 +109,18 @@ class Box {
   }
 
   void update(double timeStep) {
-
+    time += timeStep;
+    position = new Vector3(Math.sin(time), 0.0, -1.0);
   }
 
   void render(WebGL.RenderingContext glContext, Float32List cameraTransform) {
     glContext.useProgram(shader.program);
     glContext.uniformMatrix4fv(cameraTransformLocation, false, cameraTransform);
+
+    var modelTransform = new Matrix4.translation(position);
+    var modelTransformMatrix = new Float32List(16);
+    modelTransform.copyIntoArray(modelTransformMatrix, 0);
+    glContext.uniformMatrix4fv(modelTransformLocation, false, modelTransformMatrix);
 
     // Bind vertices
     vertexUVBuffer.bind(glContext, positionAttributeIndex, texCoordIndex);
