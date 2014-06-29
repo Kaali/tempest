@@ -15,6 +15,7 @@ import 'package:vector_math/vector_math.dart';
 
 part 'camera.dart';
 part 'shader.dart';
+part 'vertex_uv_buffer.dart';
 
 double timestamp() {
   if (window.performance != null) {
@@ -27,15 +28,11 @@ double timestamp() {
 // Test object
 class Box {
   Shader shader;
-  WebGL.Buffer vertexBuffer;
-  WebGL.Buffer indexBuffer;
-  int vertexCount;
-  int vertexStride;
   Float32List cameraTransform;
   WebGL.UniformLocation cameraTransformLocation;
   int positionAttributeIndex;
   int texCoordIndex;
-  int uvOffset;
+  VertexUVBuffer vertexUVBuffer;
 
   Box() {
 
@@ -58,24 +55,7 @@ class Box {
         0, 1, 2, 3
     ];
 
-    var vertexData = new Float32List.fromList(vertices);
-    vertexBuffer = glContext.createBuffer();
-    glContext.bindBuffer(WebGL.RenderingContext.ARRAY_BUFFER, vertexBuffer);
-    glContext.bufferDataTyped(
-        WebGL.RenderingContext.ARRAY_BUFFER,
-        vertexData,
-        WebGL.RenderingContext.STATIC_DRAW);
-
-    indexBuffer = glContext.createBuffer();
-    glContext.bindBuffer(WebGL.RenderingContext.ELEMENT_ARRAY_BUFFER, indexBuffer);
-    glContext.bufferDataTyped(
-        WebGL.RenderingContext.ELEMENT_ARRAY_BUFFER,
-        new Uint16List.fromList(indices),
-        WebGL.RenderingContext.STATIC_DRAW);
-
-    vertexCount = indices.length;
-    vertexStride = vertexData.elementSizeInBytes * 5;
-    uvOffset = vertexData.elementSizeInBytes * 3;
+    vertexUVBuffer = new VertexUVBuffer(glContext, vertices, indices);
   }
 
   void _setupProgram(WebGL.RenderingContext glContext) {
@@ -134,29 +114,12 @@ class Box {
     projMatrix.multiply(viewMatrix);
     projMatrix.copyIntoArray(cameraTransform, 0);
 
-    // Bind vertices
-    glContext.bindBuffer(WebGL.RenderingContext.ARRAY_BUFFER, vertexBuffer);
-    glContext.enableVertexAttribArray(positionAttributeIndex);
-    glContext.vertexAttribPointer(
-        positionAttributeIndex,
-        3, WebGL.RenderingContext.FLOAT,
-        false, vertexStride,
-        0);
-
-    glContext.enableVertexAttribArray(texCoordIndex);
-    glContext.vertexAttribPointer(
-        texCoordIndex,
-        2, WebGL.RenderingContext.FLOAT,
-        false, vertexStride,
-        uvOffset
-    );
-
     glContext.useProgram(shader.program);
     glContext.uniformMatrix4fv(cameraTransformLocation, false, cameraTransform);
-    glContext.bindBuffer(WebGL.RenderingContext.ELEMENT_ARRAY_BUFFER, indexBuffer);
-    glContext.drawElements(
-        WebGL.RenderingContext.TRIANGLE_FAN, vertexCount,
-        WebGL.RenderingContext.UNSIGNED_SHORT, 0);
+
+    // Bind vertices
+    vertexUVBuffer.bind(glContext, positionAttributeIndex, texCoordIndex);
+    vertexUVBuffer.draw(glContext);
   }
 }
 
