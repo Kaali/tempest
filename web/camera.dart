@@ -18,7 +18,7 @@ class Camera {
 
     eyePosition = new Vector3(0.0, 0.0, 0.0);
     upDirection = new Vector3(0.0, 1.0, 0.0);
-    lookAtPosition = new Vector3(0.0, 0.0, 1.0);
+    lookAtPosition = new Vector3(0.0, 0.0, -1.0);
   }
 
   Matrix4 get projectionMatrix =>
