@@ -21,11 +21,18 @@ class Camera {
     lookAtPosition = new Vector3(0.0, 0.0, 1.0);
   }
 
-  Matrix4 get projectionMatrix {
-    return makePerspectiveMatrix(fovY, aspectRatio, zNear, zFar);
-  }
+  Matrix4 get projectionMatrix =>
+    makePerspectiveMatrix(fovY, aspectRatio, zNear, zFar);
 
-  Matrix4 get lookAtMatrix {
-    return makeViewMatrix(eyePosition, lookAtPosition, upDirection);
+  Matrix4 get lookAtMatrix =>
+    makeViewMatrix(eyePosition, lookAtPosition, upDirection);
+
+  Float32List get cameraTransform {
+    var cameraMatrix = projectionMatrix;
+    cameraMatrix.multiply(lookAtMatrix);
+
+    Float32List cameraTransform = new Float32List(16);
+    cameraMatrix.copyIntoArray(cameraTransform, 0);
+    return cameraTransform;
   }
 }

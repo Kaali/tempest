@@ -28,7 +28,6 @@ double timestamp() {
 // Test object
 class Box {
   Shader shader;
-  Float32List cameraTransform;
   WebGL.UniformLocation cameraTransformLocation;
   int positionAttributeIndex;
   int texCoordIndex;
@@ -41,7 +40,6 @@ class Box {
   void setup(WebGL.RenderingContext glContext) {
     _setupBuffers(glContext);
     _setupProgram(glContext);
-    cameraTransform = new Float32List(16);
   }
 
   void _setupBuffers(WebGL.RenderingContext glContext) {
@@ -107,13 +105,7 @@ class Box {
 
   }
 
-  void render(WebGL.RenderingContext glContext, Camera camera) {
-    // Calculate camera (TODO: cache)
-    var projMatrix = camera.projectionMatrix;
-    var viewMatrix = camera.lookAtMatrix;
-    projMatrix.multiply(viewMatrix);
-    projMatrix.copyIntoArray(cameraTransform, 0);
-
+  void render(WebGL.RenderingContext glContext, Float32List cameraTransform) {
     glContext.useProgram(shader.program);
     glContext.uniformMatrix4fv(cameraTransformLocation, false, cameraTransform);
 
@@ -142,7 +134,7 @@ class Tempest {
   }
 
   void render(double timeStep, WebGL.RenderingContext glContext) {
-    box.render(glContext, camera);
+    box.render(glContext, camera.cameraTransform);
   }
 
   void onKeyDown(KeyboardEvent event) {
