@@ -10,7 +10,7 @@ class VertexUVBuffer {
 
   VertexUVBuffer(WebGL.RenderingContext gl, List<double> vertices,
                  List<int> indices,
-                 {int mode : WebGL.RenderingContext.TRIANGLE_FAN}) {
+                 {int mode : WebGL.RenderingContext.TRIANGLES}) {
     assert(vertices.length % 5 == 0);
     assert(indices.every((x) => x >= 0 && x < vertices.length / 5));
 
