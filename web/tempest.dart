@@ -32,9 +32,12 @@ class Box {
   WebGL.UniformLocation modelTransformLocation;
   int positionAttributeIndex;
   int texCoordIndex;
+  int faceIdx;
+  WebGL.UniformLocation active;
   VertexUVBuffer vertexUVBuffer;
   Vector3 position;
   double time;
+  WebGL.Buffer activeDataBuffer;
 
   Box() {
     time = 0.0;
@@ -76,45 +79,75 @@ class Box {
       x = c * x - s * y;
       y = s * oldX + c * y;
     }
-    print(vertices);
 
     var indices = new List.generate((sides + 1) * 2, (index) => index);
-    print(indices);
 
     vertexUVBuffer = new VertexUVBuffer(glContext, vertices, indices, mode:WebGL.RenderingContext.TRIANGLE_STRIP);
+
+    // Indices for active vertex drawing
+    var activeData = <double>[];
+    for (var idx in new List.generate(sides + 1, (idx) => idx.toDouble())) {
+      activeData.add(idx);
+      activeData.add(idx);
+    }
+
+    // TODO: Extract single buffer class
+    activeData = new Float32List.fromList(activeData);
+    activeDataBuffer = glContext.createBuffer();
+    glContext.bindBuffer(WebGL.RenderingContext.ARRAY_BUFFER, activeDataBuffer);
+    glContext.bufferDataTyped(
+        WebGL.RenderingContext.ARRAY_BUFFER,
+        activeData,
+        WebGL.RenderingContext.STATIC_DRAW);
   }
 
   void _setupProgram(WebGL.RenderingContext glContext) {
     var vertexShader = '''
     attribute vec3 aPosition;
     attribute vec2 aTexCoord;
+    attribute float aFaceIdx;
+    uniform float uActive;
     uniform mat4 uCameraTransform;
     uniform mat4 uModelTransform;
 
     varying vec2 vTexCoord;
+    varying float vActive;
 
     void main(void) {
       vec4 pos = uCameraTransform * uModelTransform * vec4(aPosition, 1.0);
       gl_Position = pos;
       vTexCoord = aTexCoord;
+      vActive = abs(aFaceIdx - uActive) < 0.00001 ? 1.0 : 0.0;
     }
     ''';
+
+    // TODO: Active face shader feature for targeting
     var fragmentShader = '''
     precision highp float;
 
     varying vec2 vTexCoord;
+    varying float vActive;
 
     void main(void) {
       float width = 0.04;
       float edgeX = (vTexCoord.x < width || vTexCoord.x > 1.0 - width) ? 1.0 : 0.0;
       float edgeY = (vTexCoord.y < width || vTexCoord.y > 1.0 - width) ? 1.0 : 0.0;
       float edge = min(1.0, edgeX + edgeY);
+      bool isActive = vActive > 0.0;
       if (edge == 1.0) {
         // Edges
-        gl_FragColor = vec4(0.0, 1.0 * edge, 0.0, 1.0);
+        if (isActive) {
+          gl_FragColor = vec4(1.0 * edge, 0.0, 1.0 * edge, 1.0);
+        } else {
+          gl_FragColor = vec4(0.0, 1.0 * edge, 0.0, 1.0);
+        }
       } else {
         // Inner
-        gl_FragColor = vec4(0.1, 0.2, 0.1, 1.0);
+        if (isActive) {
+          gl_FragColor = vec4(0.5, 0.2, 0.2, 1.0);
+        } else {
+          gl_FragColor = vec4(0.1, 0.2, 0.1, 1.0);
+        }
       }
 
       // fog test just for kicks
@@ -137,6 +170,10 @@ class Box {
     assert(positionAttributeIndex != -1);
     texCoordIndex = glContext.getAttribLocation(shader.program, 'aTexCoord');
     assert(texCoordIndex != -1);
+    faceIdx = glContext.getAttribLocation(shader.program, 'aFaceIdx');
+    assert(faceIdx != -1);
+    active = glContext.getUniformLocation(shader.program, 'uActive');
+    assert(active != -1);
   }
 
   void update(double timeStep) {
@@ -152,6 +189,18 @@ class Box {
     var modelTransformMatrix = new Float32List(16);
     modelTransform.copyIntoArray(modelTransformMatrix, 0);
     glContext.uniformMatrix4fv(modelTransformLocation, false, modelTransformMatrix);
+
+    glContext.bindBuffer(WebGL.RenderingContext.ARRAY_BUFFER, activeDataBuffer);
+    glContext.enableVertexAttribArray(faceIdx);
+    glContext.vertexAttribPointer(
+        faceIdx,
+        1, WebGL.RenderingContext.FLOAT,
+        false, 4,
+        0
+    );
+
+    // TODO: Does not match and has fun bugs when it does
+    glContext.uniform1f(active, 1.0);
 
     // Bind vertices
     vertexUVBuffer.bind(glContext, positionAttributeIndex, texCoordIndex);
