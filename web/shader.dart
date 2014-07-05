@@ -13,12 +13,12 @@ class Shader {
     vertexShader = glContext.createShader(WebGL.RenderingContext.VERTEX_SHADER);
     glContext.shaderSource(vertexShader, vertexShaderSource);
     glContext.compileShader(vertexShader);
-    //print(glContext.getShaderInfoLog(vertexShader));
+    print(glContext.getShaderInfoLog(vertexShader));
 
     fragmentShader = glContext.createShader(WebGL.RenderingContext.FRAGMENT_SHADER);
     glContext.shaderSource(fragmentShader, fragmentShaderSource);
     glContext.compileShader(fragmentShader);
-    //print(glContext.getShaderInfoLog(fragmentShader));
+    print(glContext.getShaderInfoLog(fragmentShader));
   }
 
   void link(WebGL.RenderingContext glContext) {

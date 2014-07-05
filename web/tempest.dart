@@ -33,6 +33,8 @@ class Tempest {
   Camera camera;
   Level level;
   PostProcess postProcess;
+  GaussianHorizontalPass gaussianPass;
+  BlendPass blendPass;
   int width;
   int height;
 
@@ -42,12 +44,17 @@ class Tempest {
     camera = new Camera(45.0, aspectRatio, 1.0, 1000.0);
     level = new CylinderLevel();
     postProcess = new PostProcess();
+    gaussianPass = new GaussianHorizontalPass();
+    blendPass = new BlendPass();
   }
 
   void setup(WebGL.RenderingContext glContext) {
     // TODO: Async setup and manager for shaders etc.
     level.setup(glContext);
     postProcess.setup(glContext, width, height);
+    // TODO: Use aspect ratio size for gaussian
+    gaussianPass.setup(glContext, width, height);
+    blendPass.setup(glContext, width, height);
   }
 
   void update(double timeStep) {
@@ -65,7 +72,8 @@ class Tempest {
       level.render(gl, camera.cameraTransform);
     }
     postProcess.withBind(glContext, draw);
-    postProcess.draw(glContext);
+    gaussianPass.process(glContext, postProcess._fboTex);
+    blendPass.draw(glContext, postProcess._fboTex, gaussianPass.outputTex);
   }
 
   void onKeyDown(KeyboardEvent event) {

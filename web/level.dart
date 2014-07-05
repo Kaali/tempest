@@ -96,7 +96,7 @@ abstract class Level implements GameObject {
         gl_FragColor = vec4(0.2 * vActive, 0.3 * vActive, 1.0 * edge, 1.0);
       } else {
         // Inner
-        gl_FragColor = vec4(0.05, 0.05, 0.15 + (0.2 * vActive), 1.0);
+        gl_FragColor = vec4(0.025, 0.025, 0.05 + (0.2 * vActive), 1.0);
       }
 
       // fog test just for kicks
