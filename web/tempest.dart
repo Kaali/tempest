@@ -29,6 +29,22 @@ abstract class GameObject {
   void render(WebGL.RenderingContext gl, Float32List cameraTransform);
 }
 
+class GameState {
+  int playerPosition = 0;
+}
+
+class InputState {
+  bool moveLeft = false;
+  bool moveRight = false;
+
+  InputState clone() {
+    var inputState = new InputState();
+    inputState.moveLeft = moveLeft;
+    inputState.moveRight = moveRight;
+    return inputState;
+  }
+}
+
 class Tempest {
   Camera camera;
   Level level;
@@ -36,10 +52,19 @@ class Tempest {
   GaussianHorizontalPass gaussianPass;
   BlendPass blendPass;
   ScanlinePass scanlinePass;
+  GameState gameState;
+  InputState inputState;
   int width;
   int height;
 
+  // Keys
+  static const int KEY_LEFT = 37;
+  static const int KEY_RIGHT = 39;
+  static const int KEY_FIRE = 32;
+
   Tempest(num aspectRatio, int width, int height) {
+    gameState = new GameState();
+    inputState = new InputState();
     this.width = width;
     this.height = height;
     camera = new Camera(45.0, aspectRatio, 1.0, 1000.0);
@@ -61,6 +86,16 @@ class Tempest {
   }
 
   void update(double timeStep) {
+    InputState frameInputState = inputState.clone();
+    // TODO: If player is moving then don't update position
+    if (inputState.moveLeft) {
+      gameState.playerPosition =
+        level.setPlayerPosition(gameState.playerPosition - 1);
+    } else if (inputState.moveRight) {
+      gameState.playerPosition =
+        level.setPlayerPosition(gameState.playerPosition + 1);
+    }
+
     level.update(timeStep);
   }
 
@@ -81,9 +116,33 @@ class Tempest {
   }
 
   void onKeyDown(KeyboardEvent event) {
+    switch (event.keyCode) {
+      case KEY_LEFT:
+        inputState.moveLeft = true;
+        break;
+      case KEY_RIGHT:
+        inputState.moveRight = true;
+        break;
+      case KEY_FIRE:
+        break;
+      default:
+        break;
+    }
   }
 
   void onKeyUp(KeyboardEvent event) {
+    switch (event.keyCode) {
+      case KEY_LEFT:
+        inputState.moveLeft = false;
+        break;
+      case KEY_RIGHT:
+        inputState.moveRight = false;
+        break;
+      case KEY_FIRE:
+        break;
+      default:
+        break;
+    }
   }
 }
 

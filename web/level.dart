@@ -30,7 +30,6 @@ class LevelFace {
 
 abstract class Level implements GameObject {
   List<LevelFace> _faces;
-  bool _loop;
   Vector3 _position;
   double _time;
   Shader _shader;
@@ -40,6 +39,7 @@ abstract class Level implements GameObject {
   int _aPosition;
   int _aUV;
   int _roll;
+  int _playerPosition;
 
   Level() {
     _position = new Vector3(0.0, 0.0, -3.0);
@@ -47,12 +47,18 @@ abstract class Level implements GameObject {
     _roll = 0;
   }
 
-  List<Float32List> generateFaces();
+  int get numOfFaces;
+  List<Float32List> vertices();
+  List<Vector2> playerPositions();
+  int setPlayerPosition(int position) {
+    _playerPosition = position % numOfFaces;
+    return _playerPosition;
+  }
 
   void setup(WebGL.RenderingContext gl) {
     _faces = [];
     int idx = 0;
-    for (Float32List face in generateFaces()) {
+    for (Float32List face in vertices()) {
       _faces.add(new LevelFace(idx, face));
       idx++;
     }
@@ -127,7 +133,7 @@ abstract class Level implements GameObject {
   void update(double timeStep) {
     _time += timeStep;
     _position = new Vector3(Math.sin(_time) * 0.8, 0.0, -3.0);
-    _roll = (_time * 10.0).toInt() % 16;
+    //_roll = (_time * 10.0).toInt() % 16;
   }
 
   void render(WebGL.RenderingContext gl, Float32List cameraTransform) {
@@ -140,16 +146,29 @@ abstract class Level implements GameObject {
     gl.uniformMatrix4fv(_uModelTransform, false, modelTransformMatrix);
 
     for (var face in _faces) {
-      gl.uniform1i(_uActive, face.index == _roll ? 1 : 0);
+      gl.uniform1i(_uActive, face.index == _playerPosition ? 1 : 0);
       face.render(gl, _aPosition, _aUV);
     }
   }
 }
 
 class CylinderLevel extends Level {
-  List<Float32List> generateFaces() {
-    List<Float32List> faces = [];
-    int sides = 16;
+  List<Float32List> _vertices;
+  List<Vector2> _playerPositions;
+
+  CylinderLevel() : super() {
+    _generateFaces();
+  }
+
+  int get numOfFaces => 16;
+
+  List<Float32List> vertices() => _vertices;
+  List<Vector2> playerPositions() => _playerPositions;
+
+  void _generateFaces() {
+    _vertices = new List<Float32List>();
+    _playerPositions = new List<Vector2>();
+    int sides = numOfFaces;
     double theta = 2.0 * Math.PI / sides;
     double c = Math.cos(theta);
     double s = Math.sin(theta);
@@ -169,11 +188,11 @@ class CylinderLevel extends Level {
           nextX, nextY, 0.0, 1.0, 0.0,
           nextX, nextY, depth, 1.0, 1.0
       ]);
-      faces.add(new Float32List.fromList(vertices));
+      _vertices.add(new Float32List.fromList(vertices));
+      _playerPositions.add(new Vector2(x + (y - x) / 2.0, y));
 
       x = nextX;
       y = nextY;
     }
-    return faces;
   }
 }
