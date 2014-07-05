@@ -31,25 +31,21 @@ class LevelFace {
 abstract class Level implements GameObject {
   List<LevelFace> _faces;
   Vector3 _position;
-  double _time;
   Shader _shader;
   WebGL.UniformLocation _uCameraTransform;
   WebGL.UniformLocation _uModelTransform;
   WebGL.UniformLocation _uActive;
   int _aPosition;
   int _aUV;
-  int _roll;
   int _playerPosition;
 
   Level() {
     _position = new Vector3(0.0, 0.0, -3.0);
-    _time = 0.0;
-    _roll = 0;
   }
 
   int get numOfFaces;
   List<Float32List> vertices();
-  List<Vector2> playerPositions();
+  Vector2 playerFacePosition(int position);
   int setPlayerPosition(int position) {
     _playerPosition = position % numOfFaces;
     return _playerPosition;
@@ -131,9 +127,6 @@ abstract class Level implements GameObject {
   }
 
   void update(double timeStep) {
-    _time += timeStep;
-    _position = new Vector3(Math.sin(_time) * 0.8, 0.0, -3.0);
-    //_roll = (_time * 10.0).toInt() % 16;
   }
 
   void render(WebGL.RenderingContext gl, Float32List cameraTransform) {
@@ -154,7 +147,7 @@ abstract class Level implements GameObject {
 
 class CylinderLevel extends Level {
   List<Float32List> _vertices;
-  List<Vector2> _playerPositions;
+  List<Vector2> _playerFacePositions;
 
   CylinderLevel() : super() {
     _generateFaces();
@@ -163,11 +156,20 @@ class CylinderLevel extends Level {
   int get numOfFaces => 16;
 
   List<Float32List> vertices() => _vertices;
-  List<Vector2> playerPositions() => _playerPositions;
+  Vector2 playerFacePosition(int position) {
+    return _playerFacePositions[position];
+  }
 
   void _generateFaces() {
+    double middle(double a, double b) {
+      if (a < b) {
+        return a + (b - a) / 2.0;
+      } else {
+        return b + (a - b) / 2.0;
+      }
+    }
     _vertices = new List<Float32List>();
-    _playerPositions = new List<Vector2>();
+    _playerFacePositions = new List<Vector2>();
     int sides = numOfFaces;
     double theta = 2.0 * Math.PI / sides;
     double c = Math.cos(theta);
@@ -189,7 +191,7 @@ class CylinderLevel extends Level {
           nextX, nextY, depth, 1.0, 1.0
       ]);
       _vertices.add(new Float32List.fromList(vertices));
-      _playerPositions.add(new Vector2(x + (y - x) / 2.0, y));
+      _playerFacePositions.add(new Vector2(middle(x, nextX), y));
 
       x = nextX;
       y = nextY;
