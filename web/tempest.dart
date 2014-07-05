@@ -13,6 +13,7 @@ part 'camera.dart';
 part 'shader.dart';
 part 'vertex_uv_buffer.dart';
 part 'level.dart';
+part 'postprocess.dart';
 
 double timestamp() {
   if (window.performance != null) {
@@ -31,15 +32,22 @@ abstract class GameObject {
 class Tempest {
   Camera camera;
   Level level;
+  PostProcess postProcess;
+  int width;
+  int height;
 
-  Tempest(num aspectRatio) {
+  Tempest(num aspectRatio, int width, int height) {
+    this.width = width;
+    this.height = height;
     camera = new Camera(45.0, aspectRatio, 1.0, 1000.0);
     level = new CylinderLevel();
+    postProcess = new PostProcess();
   }
 
   void setup(WebGL.RenderingContext glContext) {
     // TODO: Async setup and manager for shaders etc.
     level.setup(glContext);
+    postProcess.setup(glContext, width, height);
   }
 
   void update(double timeStep) {
@@ -47,7 +55,17 @@ class Tempest {
   }
 
   void render(double timeStep, WebGL.RenderingContext glContext) {
-    level.render(glContext, camera.cameraTransform);
+    void draw(WebGL.RenderingContext gl) {
+      glContext.viewport(0, 0, width, height);
+      glContext.clearColor(0.0, 0.0, 0.0, 1.0);
+      glContext.clearDepth(1.0);
+      glContext.clear(
+          WebGL.RenderingContext.COLOR_BUFFER_BIT |
+          WebGL.RenderingContext.DEPTH_BUFFER_BIT);
+      level.render(gl, camera.cameraTransform);
+    }
+    postProcess.withBind(glContext, draw);
+    postProcess.draw(glContext);
   }
 
   void onKeyDown(KeyboardEvent event) {
@@ -91,7 +109,7 @@ class TempestApplication {
   }
 
   Future setupAssets() {
-    tempest = new Tempest(aspectRatio);
+    tempest = new Tempest(aspectRatio, width, height);
     tempest.setup(glContext);
     return new Future(() => null);
   }
@@ -126,13 +144,6 @@ class TempestApplication {
   }
 
   void render(double timeStep) {
-    glContext.viewport(0, 0, width, height);
-    glContext.clearColor(0.0, 0.0, 0.0, 1.0);
-    glContext.clearDepth(1.0);
-    glContext.clear(
-        WebGL.RenderingContext.COLOR_BUFFER_BIT |
-        WebGL.RenderingContext.DEPTH_BUFFER_BIT);
-
     tempest.render(timeStep, glContext);
   }
 
