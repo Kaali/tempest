@@ -93,10 +93,10 @@ abstract class Level implements GameObject {
       float edge = min(1.0, edgeX + edgeY);
       if (edge == 1.0) {
         // Edges
-        gl_FragColor = vec4(vActive, 1.0 * edge, 0.0, 1.0);
+        gl_FragColor = vec4(0.2 * vActive, 0.3 * vActive, 1.0 * edge, 1.0);
       } else {
         // Inner
-        gl_FragColor = vec4(0.1, 0.2, 0.1, 1.0);
+        gl_FragColor = vec4(0.05, 0.05, 0.15 + (0.2 * vActive), 1.0);
       }
 
       // fog test just for kicks
