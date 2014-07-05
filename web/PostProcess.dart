@@ -1,22 +1,28 @@
 part of tempest;
 
-class PostProcess {
+abstract class PostProcessPass {
   WebGL.Framebuffer _fbo;
   WebGL.Texture _fboTex;
   int _width;
   int _height;
   VertexUVBuffer _vertexUVBuffer;
   Shader _shader;
-  WebGL.UniformLocation _uTexture;
   int _aPosition;
   int _aTexCoord;
 
-  PostProcess() {
+  PostProcessPass() {
   }
 
-  void _createTexture(WebGL.RenderingContext gl, int width, int height) {
-    _fboTex = gl.createTexture();
-    gl.bindTexture(WebGL.TEXTURE_2D, _fboTex);
+  String get _fragmentShader;
+  WebGL.Texture get outputTex => _fboTex;
+  WebGL.Program get program => _shader.program;
+  void _bindShader(WebGL.RenderingContext gl);
+  void _setupShader(WebGL.RenderingContext gl);
+  // Implement your own process -function with necessary arguments
+
+  WebGL.Texture _createTexture(WebGL.RenderingContext gl, int width, int height) {
+    WebGL.Texture tex = gl.createTexture();
+    gl.bindTexture(WebGL.TEXTURE_2D, tex);
     gl.texParameteri(WebGL.TEXTURE_2D, WebGL.TEXTURE_WRAP_S, WebGL.CLAMP_TO_EDGE);
     gl.texParameteri(WebGL.TEXTURE_2D, WebGL.TEXTURE_WRAP_T, WebGL.CLAMP_TO_EDGE);
     gl.texParameteri(WebGL.TEXTURE_2D, WebGL.TEXTURE_MAG_FILTER, WebGL.NEAREST);
@@ -24,6 +30,7 @@ class PostProcess {
     gl.texImage2D(
         WebGL.TEXTURE_2D, 0, WebGL.RGBA, width, height, 0, WebGL.RGBA,
         WebGL.UNSIGNED_BYTE, null);
+    return tex;
   }
 
   void _createFBO(WebGL.RenderingContext gl) {
@@ -58,18 +65,7 @@ class PostProcess {
     }
     ''';
 
-    var fragmentShader = '''
-    precision highp float;
-
-    uniform sampler2D uTexture;
-    varying vec2 vTexCoord;
-
-    void main() {
-      gl_FragColor = texture2D(uTexture, vTexCoord);
-    }
-    ''';
-
-    _shader = new Shader(vertexShader, fragmentShader);
+    _shader = new Shader(vertexShader, _fragmentShader);
     _shader.compile(gl);
     _shader.link(gl);
 
@@ -77,33 +73,69 @@ class PostProcess {
     assert(_aPosition != 0);
     _aTexCoord = gl.getAttribLocation(_shader.program, 'aTexCoord');
     assert(_aTexCoord != 0);
-    _uTexture = gl.getUniformLocation(_shader.program, 'uTexture');
-    assert(_uTexture != 0);
   }
 
   void setup(WebGL.RenderingContext gl, int width, int height) {
     _width = width;
     _height = height;
 
-    _createTexture(gl, width, height);
+    _fboTex = _createTexture(gl, width, height);
     _createFBO(gl);
     _createVertexBuffer(gl);
     _createShader(gl);
+    _setupShader(gl);
   }
 
+  // Capture draws in fun to FBO texture
   void withBind(WebGL.RenderingContext gl, void fun(WebGL.RenderingContext gl)) {
     gl.bindFramebuffer(WebGL.FRAMEBUFFER, _fbo);
     fun(gl);
     gl.bindFramebuffer(WebGL.FRAMEBUFFER, null);
   }
 
-  void draw(WebGL.RenderingContext gl) {
+  void _draw(WebGL.RenderingContext gl) {
     gl.useProgram(_shader.program);
-    gl.activeTexture(WebGL.TEXTURE0);
-    gl.bindTexture(WebGL.TEXTURE_2D, _fboTex);
-    gl.uniform1i(_uTexture, 0);
+    _bindShader(gl);
     _vertexUVBuffer.bind(gl, _aPosition, _aTexCoord);
     _vertexUVBuffer.draw(gl);
+  }
+}
+
+class CaptureProcess extends PostProcessPass {
+  WebGL.UniformLocation _uSampler0;
+
+  CaptureProcess() {
+  }
+
+  String get _fragmentShader => '''
+    precision highp float;
+
+    uniform sampler2D uSampler0;
+    varying vec2 vTexCoord;
+
+    void main() {
+      gl_FragColor = texture2D(uSampler0, vTexCoord);
+    }
+    ''';
+
+
+  void _bindShader(WebGL.RenderingContext gl) {
+    gl.activeTexture(WebGL.TEXTURE0);
+    gl.bindTexture(WebGL.TEXTURE_2D, outputTex);
+    gl.uniform1i(_uSampler0, 0);
+  }
+
+  void _setupShader(WebGL.RenderingContext gl) {
+    _uSampler0 = gl.getUniformLocation(program, 'uSampler0');
+    assert(_uSampler0 != 0);
+  }
+
+  void process(WebGL.RenderingContext gl) {
+    withBind(gl, draw);
+  }
+
+  void draw(WebGL.RenderingContext gl) {
+    _draw(gl);
   }
 }
 
@@ -248,103 +280,48 @@ class BlendPass extends PostProcessPass {
   }
 }
 
-abstract class PostProcessPass {
-  WebGL.Framebuffer _fbo;
-  WebGL.Texture _fboTex;
-  int _width;
-  int _height;
-  VertexUVBuffer _vertexUVBuffer;
-  Shader _shader;
-  int _aPosition;
-  int _aTexCoord;
+class ScanlinePass extends PostProcessPass {
+  WebGL.UniformLocation _uSampler0;
+  WebGL.UniformLocation _uSize;
+  WebGL.Texture _inputTex;
 
-  PostProcessPass() {
-  }
+  String get _fragmentShader => '''
+    precision highp float;
 
-  String get _fragmentShader;
-  WebGL.Texture get outputTex => _fboTex;
-  WebGL.Program get program => _shader.program;
-  void _bindShader(WebGL.RenderingContext gl);
-  void _setupShader(WebGL.RenderingContext gl);
-  // Implement your own process -function with necessary arguments
+    uniform float uSize;
 
-  WebGL.Texture createTexture(WebGL.RenderingContext gl, int width, int height) {
-    WebGL.Texture tex = gl.createTexture();
-    gl.bindTexture(WebGL.TEXTURE_2D, tex);
-    gl.texParameteri(WebGL.TEXTURE_2D, WebGL.TEXTURE_WRAP_S, WebGL.CLAMP_TO_EDGE);
-    gl.texParameteri(WebGL.TEXTURE_2D, WebGL.TEXTURE_WRAP_T, WebGL.CLAMP_TO_EDGE);
-    gl.texParameteri(WebGL.TEXTURE_2D, WebGL.TEXTURE_MAG_FILTER, WebGL.NEAREST);
-    gl.texParameteri(WebGL.TEXTURE_2D, WebGL.TEXTURE_MIN_FILTER, WebGL.NEAREST);
-    gl.texImage2D(
-        WebGL.TEXTURE_2D, 0, WebGL.RGBA, width, height, 0, WebGL.RGBA,
-        WebGL.UNSIGNED_BYTE, null);
-    return tex;
-  }
-
-  void _createFBO(WebGL.RenderingContext gl) {
-    _fbo = gl.createFramebuffer();
-    gl.bindFramebuffer(WebGL.FRAMEBUFFER, _fbo);
-    gl.framebufferTexture2D(
-        WebGL.FRAMEBUFFER, WebGL.COLOR_ATTACHMENT0, WebGL.TEXTURE_2D, _fboTex, 0);
-    gl.bindFramebuffer(WebGL.FRAMEBUFFER, null);
-  }
-
-  void _createVertexBuffer(WebGL.RenderingContext gl) {
-    var vertices = [
-        -1.0, -1.0, 0.0, 0.0, 0.0,
-        -1.0, 1.0, 0.0, 0.0, 1.0,
-        1.0, 1.0, 0.0, 1.0, 1.0,
-        1.0, -1.0, 0.0, 1.0, 0.0,
-    ];
-    _vertexUVBuffer = new VertexUVBuffer(
-        gl, vertices, [0, 1, 2, 3],
-        mode:WebGL.RenderingContext.TRIANGLE_FAN);
-  }
-
-  void _createShader(WebGL.RenderingContext gl) {
-    var vertexShader = '''
-    attribute vec3 aPosition;
-    attribute vec2 aTexCoord;
+    uniform sampler2D uSampler0;
     varying vec2 vTexCoord;
 
     void main() {
-      vTexCoord = aTexCoord;
-      gl_Position = vec4(aPosition, 1.0);
+      gl_FragColor = texture2D(uSampler0, vTexCoord) * clamp(sin(vTexCoord.y * uSize), 0.6, 1.0);
+      gl_FragColor.w = 1.0;
     }
     ''';
 
-    _shader = new Shader(vertexShader, _fragmentShader);
-    _shader.compile(gl);
-    _shader.link(gl);
+  void _bindShader(WebGL.RenderingContext gl) {
+    gl.activeTexture(WebGL.TEXTURE0);
+    gl.bindTexture(WebGL.TEXTURE_2D, _inputTex);
+    gl.uniform1i(_uSampler0, 0);
 
-    _aPosition = gl.getAttribLocation(_shader.program, 'aPosition');
-    assert(_aPosition != 0);
-    _aTexCoord = gl.getAttribLocation(_shader.program, 'aTexCoord');
-    assert(_aTexCoord != 0);
+    gl.uniform1f(_uSize, 800.0);
   }
 
-  void setup(WebGL.RenderingContext gl, int width, int height) {
-    _width = width;
-    _height = height;
-
-    _fboTex = createTexture(gl, width, height);
-    _createFBO(gl);
-    _createVertexBuffer(gl);
-    _createShader(gl);
-    _setupShader(gl);
+  void _setupShader(WebGL.RenderingContext gl) {
+    _uSampler0 = gl.getUniformLocation(program, 'uSampler0');
+    assert(_uSampler0 != 0);
+    _uSize = gl.getUniformLocation(program, 'uSize');
+    assert(_uSize != 0);
   }
 
-  // Capture draws in fun to FBO texture
-  void withBind(WebGL.RenderingContext gl, void fun(WebGL.RenderingContext gl)) {
-    gl.bindFramebuffer(WebGL.FRAMEBUFFER, _fbo);
-    fun(gl);
-    gl.bindFramebuffer(WebGL.FRAMEBUFFER, null);
+  void process(WebGL.RenderingContext gl, WebGL.Texture inputTex) {
+    withBind(gl, (gl) => draw(gl, inputTex));
   }
 
-  void _draw(WebGL.RenderingContext gl) {
-    gl.useProgram(_shader.program);
-    _bindShader(gl);
-    _vertexUVBuffer.bind(gl, _aPosition, _aTexCoord);
-    _vertexUVBuffer.draw(gl);
+  void draw(WebGL.RenderingContext gl, WebGL.Texture inputTex) {
+    _inputTex = inputTex;
+    _draw(gl);
+    _inputTex = null;
   }
 }
+

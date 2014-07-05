@@ -32,9 +32,10 @@ abstract class GameObject {
 class Tempest {
   Camera camera;
   Level level;
-  PostProcess postProcess;
+  CaptureProcess captureProcess;
   GaussianHorizontalPass gaussianPass;
   BlendPass blendPass;
+  ScanlinePass scanlinePass;
   int width;
   int height;
 
@@ -43,18 +44,20 @@ class Tempest {
     this.height = height;
     camera = new Camera(45.0, aspectRatio, 1.0, 1000.0);
     level = new CylinderLevel();
-    postProcess = new PostProcess();
+    captureProcess = new CaptureProcess();
     gaussianPass = new GaussianHorizontalPass();
     blendPass = new BlendPass();
+    scanlinePass = new ScanlinePass();
   }
 
   void setup(WebGL.RenderingContext glContext) {
     // TODO: Async setup and manager for shaders etc.
     level.setup(glContext);
-    postProcess.setup(glContext, width, height);
+    captureProcess.setup(glContext, width, height);
     // TODO: Use aspect ratio size for gaussian
     gaussianPass.setup(glContext, width, height);
     blendPass.setup(glContext, width, height);
+    scanlinePass.setup(glContext, width, height);
   }
 
   void update(double timeStep) {
@@ -71,9 +74,10 @@ class Tempest {
           WebGL.RenderingContext.DEPTH_BUFFER_BIT);
       level.render(gl, camera.cameraTransform);
     }
-    postProcess.withBind(glContext, draw);
-    gaussianPass.process(glContext, postProcess._fboTex);
-    blendPass.draw(glContext, postProcess._fboTex, gaussianPass.outputTex);
+    captureProcess.withBind(glContext, draw);
+    gaussianPass.process(glContext, captureProcess._fboTex);
+    blendPass.process(glContext, captureProcess._fboTex, gaussianPass.outputTex);
+    scanlinePass.draw(glContext, blendPass.outputTex);
   }
 
   void onKeyDown(KeyboardEvent event) {
