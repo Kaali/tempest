@@ -103,7 +103,7 @@ abstract class Level implements GameObject {
 
       // fog test just for kicks
       float fogNear = 0.1;
-      float fogFar = 2.8;
+      float fogFar = 4.0;
       float depth = gl_FragCoord.z / gl_FragCoord.w;
       float fog = smoothstep(fogNear, fogFar, depth);
       gl_FragColor = mix(gl_FragColor, vec4(0.0, 0.0, 0.0, gl_FragColor.w), fog);
@@ -174,7 +174,7 @@ class CylinderLevel extends Level {
     double theta = 2.0 * Math.PI / sides;
     double c = Math.cos(theta);
     double s = Math.sin(theta);
-    double radius = 1.0;
+    double radius = 2.0;
     double depth = 2.0;
     double x = radius;
     double y = 0.0;

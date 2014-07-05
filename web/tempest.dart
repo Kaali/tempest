@@ -67,7 +67,7 @@ class Tempest {
     inputState = new InputState();
     this.width = width;
     this.height = height;
-    camera = new Camera(45.0, aspectRatio, 1.0, 1000.0);
+    camera = new Camera(45.0, aspectRatio, 0.1, 1000.0);
     level = new CylinderLevel();
     captureProcess = new CaptureProcess();
     gaussianPass = new GaussianHorizontalPass();
@@ -96,6 +96,10 @@ class Tempest {
         level.setPlayerPosition(gameState.playerPosition + 1);
     }
 
+    camera.eyePosition.setZero();
+    camera.eyePosition.x += level.playerFacePosition(gameState.playerPosition).x * 0.2;
+    camera.eyePosition.y += level.playerFacePosition(gameState.playerPosition).y * 0.2;
+    camera.eyePosition.z = 0.2;
     level.update(timeStep);
   }
 

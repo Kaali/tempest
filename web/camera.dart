@@ -18,7 +18,7 @@ class Camera {
 
     eyePosition = new Vector3(0.0, 0.0, 0.0);
     upDirection = new Vector3(0.0, 1.0, 0.0);
-    lookAtPosition = new Vector3(0.0, 0.0, -1.0);
+    lookAtPosition = new Vector3(0.0, 0.0, -50.0);
   }
 
   Matrix4 get projectionMatrix =>
@@ -28,6 +28,7 @@ class Camera {
     makeViewMatrix(eyePosition, lookAtPosition, upDirection);
 
   Float32List get cameraTransform {
+    // TODO: Cache
     var cameraMatrix = projectionMatrix;
     cameraMatrix.multiply(lookAtMatrix);
 
