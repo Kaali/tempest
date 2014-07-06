@@ -14,6 +14,7 @@ part 'shader.dart';
 part 'vertex_uv_buffer.dart';
 part 'level.dart';
 part 'post_process.dart';
+part 'action.dart';
 
 double timestamp() {
   if (window.performance != null) {
@@ -56,6 +57,8 @@ class Tempest {
   InputState inputState;
   int width;
   int height;
+  ActionManager actionManager;
+  MoveAction moveAction;
 
   // Keys
   static const int KEY_LEFT = 37;
@@ -70,7 +73,10 @@ class Tempest {
         captureProcess = new CaptureProcess(),
         gaussianPass = new GaussianHorizontalPass(),
         blendPass = new BlendPass(),
-        scanlinePass = new ScanlinePass();
+        scanlinePass = new ScanlinePass(),
+        actionManager = new ActionManager() {
+    moveAction = new MoveAction(actionManager);
+  }
 
   void setup(WebGL.RenderingContext glContext) {
     // TODO: Async setup and manager for shaders etc.
@@ -82,22 +88,31 @@ class Tempest {
     scanlinePass.setup(glContext, width, height);
   }
 
+  void _moveCameraToPlayerPos() {
+    var facePos = level.playerFacePosition(gameState.playerPosition);
+    var newEyePos = new Vector3(
+        facePos.x * 0.2, facePos.y * 0.2, camera.eyePosition.z);
+    moveAction.moveTo(camera.eyePosition.clone(), newEyePos, 0.08);
+  }
+
   void update(double timeStep) {
     var frameInputState = inputState.clone();
-    // TODO: If player is moving then don't update position
-    if (inputState.moveLeft) {
-      gameState.playerPosition =
-        level.setPlayerPosition(gameState.playerPosition - 1);
-    } else if (inputState.moveRight) {
-      gameState.playerPosition =
-        level.setPlayerPosition(gameState.playerPosition + 1);
+    if (!moveAction.isRunning) {
+      if (inputState.moveLeft) {
+        gameState.playerPosition = level.setPlayerPosition(gameState.playerPosition - 1);
+        _moveCameraToPlayerPos();
+      } else if (inputState.moveRight) {
+        gameState.playerPosition = level.setPlayerPosition(gameState.playerPosition + 1);
+        _moveCameraToPlayerPos();
+      }
     }
 
-    camera.eyePosition
-      ..setZero()
-      ..x += level.playerFacePosition(gameState.playerPosition).x * 0.2
-      ..y += level.playerFacePosition(gameState.playerPosition).y * 0.2
-      ..z = 0.2;
+    actionManager.update(timeStep);
+
+    // TODO: Replace with proper ticker
+    if (moveAction.current != null && moveAction.current != camera.eyePosition) {
+      camera.eyePosition = moveAction.current;
+    }
     level.update(timeStep);
   }
 
