@@ -304,7 +304,7 @@ class ScanlinePass extends PostProcessPass {
     varying vec2 vTexCoord;
 
     void main() {
-      gl_FragColor = texture2D(uSampler0, vTexCoord) * clamp(sin(vTexCoord.y * uSize), 0.6, 1.0);
+      gl_FragColor = texture2D(uSampler0, vTexCoord) * clamp(sin(vTexCoord.y * uSize), 0.7, 1.0);
       gl_FragColor.w = 1.0;
     }
     ''';
@@ -315,7 +315,7 @@ class ScanlinePass extends PostProcessPass {
     gl.bindTexture(WebGL.TEXTURE_2D, _inputTex);
     gl.uniform1i(_uSampler0, 0);
 
-    gl.uniform1f(_uSize, 800.0);
+    gl.uniform1f(_uSize, 2000.0);
   }
 
   @override
