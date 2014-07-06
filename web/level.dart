@@ -1,25 +1,19 @@
 part of tempest;
 
 class LevelFace {
-  Float32List _faces;
-  int _index;
+  final Float32List _faces;
+  final int _index;
   VertexUVBuffer _vertexUVBuffer;
   int _uvOffset;
 
   int get index => _index;
 
-  LevelFace(int index, Float32List faces) {
-    _index = index;
-    _faces = faces;
-  }
+  LevelFace(int this._index, Float32List this._faces);
 
   void setup(WebGL.RenderingContext gl) {
-    _setupBuffer(gl);
-  }
-
-  void _setupBuffer(WebGL.RenderingContext gl) {
     var indices = new List.generate((_faces.length / 5).toInt(), (idx) => idx);
-    _vertexUVBuffer = new VertexUVBuffer(gl, _faces, indices, mode:WebGL.RenderingContext.TRIANGLE_STRIP);
+    _vertexUVBuffer = new VertexUVBuffer(gl, _faces, indices,
+        mode:WebGL.RenderingContext.TRIANGLE_STRIP);
   }
 
   void render(WebGL.RenderingContext gl, int aPosition, int aUV) {
@@ -39,9 +33,7 @@ abstract class Level implements GameObject {
   int _aUV;
   int _playerPosition;
 
-  Level() {
-    _position = new Vector3(0.0, 0.0, -3.0);
-  }
+  Level() : _position = new Vector3(0.0, 0.0, -3.0);
 
   int get numOfFaces;
   List<Float32List> vertices();
@@ -53,8 +45,8 @@ abstract class Level implements GameObject {
 
   void setup(WebGL.RenderingContext gl) {
     _faces = [];
-    int idx = 0;
-    for (Float32List face in vertices()) {
+    var idx = 0;
+    for (var face in vertices()) {
       _faces.add(new LevelFace(idx, face));
       idx++;
     }
@@ -149,13 +141,17 @@ class CylinderLevel extends Level {
   List<Float32List> _vertices;
   List<Vector2> _playerFacePositions;
 
-  CylinderLevel() : super() {
+  CylinderLevel() {
     _generateFaces();
   }
 
+  @override
   int get numOfFaces => 16;
 
+  @override
   List<Float32List> vertices() => _vertices;
+
+  @override
   Vector2 playerFacePosition(int position) {
     return _playerFacePositions[position];
   }
@@ -170,15 +166,15 @@ class CylinderLevel extends Level {
     }
     _vertices = new List<Float32List>();
     _playerFacePositions = new List<Vector2>();
-    int sides = numOfFaces;
-    double theta = 2.0 * Math.PI / sides;
-    double c = Math.cos(theta);
-    double s = Math.sin(theta);
-    double radius = 2.0;
-    double depth = 2.0;
-    double x = radius;
-    double y = 0.0;
-    for (int i = 0; i < sides; ++i) {
+    var sides = numOfFaces;
+    var theta = 2.0 * Math.PI / sides;
+    var c = Math.cos(theta);
+    var s = Math.sin(theta);
+    var radius = 2.0;
+    var depth = 2.0;
+    var x = radius;
+    var y = 0.0;
+    for (var i = 0; i < sides; ++i) {
       var vertices = [
           x, y, 0.0, 0.0, 0.0,
           x, y, depth, 0.0, 1.0

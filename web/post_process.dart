@@ -13,15 +13,15 @@ abstract class PostProcessPass {
   PostProcessPass() {
   }
 
-  String get _fragmentShader;
   WebGL.Texture get outputTex => _fboTex;
   WebGL.Program get program => _shader.program;
+
+  String get _fragmentShader;
   void _bindShader(WebGL.RenderingContext gl);
   void _setupShader(WebGL.RenderingContext gl);
-  // Implement your own process -function with necessary arguments
 
   WebGL.Texture _createTexture(WebGL.RenderingContext gl, int width, int height) {
-    WebGL.Texture tex = gl.createTexture();
+    var tex = gl.createTexture();
     gl.bindTexture(WebGL.TEXTURE_2D, tex);
     gl.texParameteri(WebGL.TEXTURE_2D, WebGL.TEXTURE_WRAP_S, WebGL.CLAMP_TO_EDGE);
     gl.texParameteri(WebGL.TEXTURE_2D, WebGL.TEXTURE_WRAP_T, WebGL.CLAMP_TO_EDGE);
@@ -107,6 +107,7 @@ class CaptureProcess extends PostProcessPass {
   CaptureProcess() {
   }
 
+  @override
   String get _fragmentShader => '''
     precision highp float;
 
@@ -119,12 +120,14 @@ class CaptureProcess extends PostProcessPass {
     ''';
 
 
+  @override
   void _bindShader(WebGL.RenderingContext gl) {
     gl.activeTexture(WebGL.TEXTURE0);
     gl.bindTexture(WebGL.TEXTURE_2D, outputTex);
     gl.uniform1i(_uSampler0, 0);
   }
 
+  @override
   void _setupShader(WebGL.RenderingContext gl) {
     _uSampler0 = gl.getUniformLocation(program, 'uSampler0');
     assert(_uSampler0 != 0);
@@ -149,6 +152,7 @@ class GaussianHorizontalPass extends PostProcessPass {
 
   // Adapted from:
   // https://web.archive.org/web/20121003045153/http://devmaster.net/posts/3100/shader-effects-glow-and-bloom
+  @override
   String get _fragmentShader => '''
     precision highp float;
 
@@ -186,6 +190,7 @@ class GaussianHorizontalPass extends PostProcessPass {
     }
     ''';
 
+  @override
   void _bindShader(WebGL.RenderingContext gl) {
     gl.activeTexture(WebGL.TEXTURE0);
     gl.bindTexture(WebGL.TEXTURE_2D, _inputTex);
@@ -197,6 +202,7 @@ class GaussianHorizontalPass extends PostProcessPass {
     gl.uniform1f(_uBlurStrength, 0.8);
   }
 
+  @override
   void _setupShader(WebGL.RenderingContext gl) {
     _uSampler0 = gl.getUniformLocation(program, 'uSampler0');
     assert(_uSampler0 != 0);
@@ -250,6 +256,7 @@ class BlendPass extends PostProcessPass {
     }
     ''';
 
+  @override
   void _bindShader(WebGL.RenderingContext gl) {
     gl.activeTexture(WebGL.TEXTURE0);
     gl.bindTexture(WebGL.TEXTURE_2D, _inputTex1);
@@ -260,6 +267,7 @@ class BlendPass extends PostProcessPass {
     gl.uniform1i(_uSampler1, 1);
   }
 
+  @override
   void _setupShader(WebGL.RenderingContext gl) {
     _uSampler0 = gl.getUniformLocation(program, 'uSampler0');
     assert(_uSampler0 != 0);
@@ -285,6 +293,7 @@ class ScanlinePass extends PostProcessPass {
   WebGL.UniformLocation _uSize;
   WebGL.Texture _inputTex;
 
+  @override
   String get _fragmentShader => '''
     precision highp float;
 
@@ -299,6 +308,7 @@ class ScanlinePass extends PostProcessPass {
     }
     ''';
 
+  @override
   void _bindShader(WebGL.RenderingContext gl) {
     gl.activeTexture(WebGL.TEXTURE0);
     gl.bindTexture(WebGL.TEXTURE_2D, _inputTex);
@@ -307,6 +317,7 @@ class ScanlinePass extends PostProcessPass {
     gl.uniform1f(_uSize, 800.0);
   }
 
+  @override
   void _setupShader(WebGL.RenderingContext gl) {
     _uSampler0 = gl.getUniformLocation(program, 'uSampler0');
     assert(_uSampler0 != 0);

@@ -13,7 +13,7 @@ part 'camera.dart';
 part 'shader.dart';
 part 'vertex_uv_buffer.dart';
 part 'level.dart';
-part 'postprocess.dart';
+part 'post_process.dart';
 
 double timestamp() {
   if (window.performance != null) {
@@ -62,18 +62,15 @@ class Tempest {
   static const int KEY_RIGHT = 39;
   static const int KEY_FIRE = 32;
 
-  Tempest(num aspectRatio, int width, int height) {
-    gameState = new GameState();
-    inputState = new InputState();
-    this.width = width;
-    this.height = height;
-    camera = new Camera(45.0, aspectRatio, 0.1, 1000.0);
-    level = new CylinderLevel();
-    captureProcess = new CaptureProcess();
-    gaussianPass = new GaussianHorizontalPass();
-    blendPass = new BlendPass();
-    scanlinePass = new ScanlinePass();
-  }
+  Tempest(num aspectRatio, int this.width, int this.height)
+      : gameState = new GameState(),
+        inputState = new InputState(),
+        camera = new Camera(45.0, aspectRatio, 0.1, 1000.0),
+        level = new CylinderLevel(),
+        captureProcess = new CaptureProcess(),
+        gaussianPass = new GaussianHorizontalPass(),
+        blendPass = new BlendPass(),
+        scanlinePass = new ScanlinePass();
 
   void setup(WebGL.RenderingContext glContext) {
     // TODO: Async setup and manager for shaders etc.
@@ -86,7 +83,7 @@ class Tempest {
   }
 
   void update(double timeStep) {
-    InputState frameInputState = inputState.clone();
+    var frameInputState = inputState.clone();
     // TODO: If player is moving then don't update position
     if (inputState.moveLeft) {
       gameState.playerPosition =
@@ -96,10 +93,11 @@ class Tempest {
         level.setPlayerPosition(gameState.playerPosition + 1);
     }
 
-    camera.eyePosition.setZero();
-    camera.eyePosition.x += level.playerFacePosition(gameState.playerPosition).x * 0.2;
-    camera.eyePosition.y += level.playerFacePosition(gameState.playerPosition).y * 0.2;
-    camera.eyePosition.z = 0.2;
+    camera.eyePosition
+      ..setZero()
+      ..x += level.playerFacePosition(gameState.playerPosition).x * 0.2
+      ..y += level.playerFacePosition(gameState.playerPosition).y * 0.2
+      ..z = 0.2;
     level.update(timeStep);
   }
 

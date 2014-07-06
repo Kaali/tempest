@@ -10,16 +10,12 @@ class Camera {
   double aspectRatio;
   double fovY;
 
-  Camera(num fovYDeg, num aspectRatio, num zNear, num zFar) {
-    this.aspectRatio = aspectRatio;
-    this.zNear = zNear;
-    this.zFar = zFar;
-    this.fovY = fovYDeg * radians2degrees;
-
-    eyePosition = new Vector3(0.0, 0.0, 0.0);
-    upDirection = new Vector3(0.0, 1.0, 0.0);
-    lookAtPosition = new Vector3(0.0, 0.0, -50.0);
-  }
+  Camera(double fovYDeg, double this.aspectRatio, double this.zNear,
+         double this.zFar)
+      : fovY = fovYDeg * radians2degrees,
+        eyePosition = new Vector3(0.0, 0.0, 0.0),
+        upDirection = new Vector3(0.0, 1.0, 0.0),
+        lookAtPosition = new Vector3(0.0, 0.0, -50.0);
 
   Matrix4 get projectionMatrix =>
     makePerspectiveMatrix(fovY, aspectRatio, zNear, zFar);
@@ -32,7 +28,7 @@ class Camera {
     var cameraMatrix = projectionMatrix;
     cameraMatrix.multiply(lookAtMatrix);
 
-    Float32List cameraTransform = new Float32List(16);
+    var cameraTransform = new Float32List(16);
     cameraMatrix.copyIntoArray(cameraTransform, 0);
     return cameraTransform;
   }
