@@ -2,14 +2,14 @@ part of tempest;
 
 // Actions register to this, which runs from the update loop
 class ActionManager {
-  List<Action> _actions;
-  List<Action> _registerQueue;
-  List<Action> _unregisterQueue;
+  Set<Action> _actions;
+  Set<Action> _registerQueue;
+  Set<Action> _unregisterQueue;
 
   ActionManager()
-      : _actions = new List<Action>(),
-        _registerQueue = new List<Action>(),
-        _unregisterQueue = new List<Action>();
+      : _actions = new Set<Action>(),
+        _registerQueue = new Set<Action>(),
+        _unregisterQueue = new Set<Action>();
 
   void register(Action action) {
     _registerQueue.add(action);
@@ -20,8 +20,8 @@ class ActionManager {
   }
 
   void _handleRegistrations() {
-    _actions.removeWhere(_unregisterQueue.contains);
-    _registerQueue.where((a) => !_actions.contains(a)).forEach(_actions.add);
+    _actions.removeAll(_unregisterQueue);
+    _actions.addAll(_registerQueue);
     _registerQueue.clear();
     _unregisterQueue.clear();
   }
