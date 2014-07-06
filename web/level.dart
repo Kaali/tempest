@@ -1,14 +1,14 @@
 part of tempest;
 
 class LevelFace {
-  final Float32List _faces;
+  final List<double> _faces;
   final int _index;
   VertexUVBuffer _vertexUVBuffer;
   int _uvOffset;
 
   int get index => _index;
 
-  LevelFace(int this._index, Float32List this._faces);
+  LevelFace(int this._index, List<double> this._faces);
 
   void setup(WebGL.RenderingContext gl) {
     var indices = new List.generate((_faces.length / 5).toInt(), (idx) => idx);
@@ -36,7 +36,7 @@ abstract class Level implements GameObject {
   Level() : _position = new Vector3(0.0, 0.0, -3.0);
 
   int get numOfFaces;
-  List<Float32List> vertices();
+  List<List<double>> vertices();
   Vector2 playerFacePosition(int position);
   int setPlayerPosition(int position) {
     _playerPosition = position % numOfFaces;
@@ -138,7 +138,7 @@ abstract class Level implements GameObject {
 }
 
 class CylinderLevel extends Level {
-  List<Float32List> _vertices;
+  List<List<double>> _vertices;
   List<Vector2> _playerFacePositions;
 
   CylinderLevel() {
@@ -149,7 +149,7 @@ class CylinderLevel extends Level {
   int get numOfFaces => 16;
 
   @override
-  List<Float32List> vertices() => _vertices;
+  List<List<double>> vertices() => _vertices;
 
   @override
   Vector2 playerFacePosition(int position) {
@@ -164,7 +164,7 @@ class CylinderLevel extends Level {
         return b + (a - b) / 2.0;
       }
     }
-    _vertices = new List<Float32List>();
+    _vertices = new List<List<double>>();
     _playerFacePositions = new List<Vector2>();
     var sides = numOfFaces;
     var theta = 2.0 * Math.PI / sides;
@@ -186,7 +186,7 @@ class CylinderLevel extends Level {
           nextX, nextY, 0.0, 1.0, 0.0,
           nextX, nextY, depth, 1.0, 1.0
       ]);
-      _vertices.add(new Float32List.fromList(vertices));
+      _vertices.add(vertices);
       _playerFacePositions.add(new Vector2(middle(x, nextX), y));
 
       x = nextX;
