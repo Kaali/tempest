@@ -22,7 +22,7 @@ class LevelFace {
   }
 }
 
-abstract class Level implements GameObject {
+abstract class Level extends GameObject {
   List<LevelFace> _faces;
   Vector3 _position;
   Shader _shader;
@@ -187,6 +187,8 @@ class CylinderLevel extends Level {
           nextX, nextY, depth, 1.0, 1.0
       ]);
       _vertices.add(vertices);
+
+      // TODO: Seems to be wrong
       _playerFacePositions.add(new Vector2(middle(x, nextX), y));
 
       x = nextX;

@@ -15,6 +15,8 @@ part 'vertex_uv_buffer.dart';
 part 'level.dart';
 part 'post_process.dart';
 part 'action.dart';
+part 'weapons.dart';
+part 'scene.dart';
 
 double timestamp() {
   if (window.performance != null) {
@@ -25,6 +27,10 @@ double timestamp() {
 }
 
 abstract class GameObject {
+  bool destroyed;
+
+  GameObject() : destroyed = false;
+
   void setup(WebGL.RenderingContext gl);
   void update(double timeStep);
   void render(WebGL.RenderingContext gl, Float32List cameraTransform);
@@ -37,16 +43,21 @@ class GameState {
 class InputState {
   bool moveLeft = false;
   bool moveRight = false;
+  bool fire = false;
 
   InputState clone() {
     var inputState = new InputState();
     inputState.moveLeft = moveLeft;
     inputState.moveRight = moveRight;
+    inputState.fire = fire;
     return inputState;
   }
 }
 
 class Tempest {
+  Scene scene;
+  SceneNode bulletNode;
+  SceneNode levelNode;
   Camera camera;
   Level level;
   CaptureProcess captureProcess;
@@ -59,11 +70,14 @@ class Tempest {
   int height;
   ActionManager actionManager;
   MoveAction moveAction;
+  double sinceLastFire;
 
   // Keys
   static const int KEY_LEFT = 37;
   static const int KEY_RIGHT = 39;
   static const int KEY_FIRE = 32;
+
+  static const double FIRE_DELAY = 0.08;
 
   Tempest(num aspectRatio, int this.width, int this.height)
       : gameState = new GameState(),
@@ -74,8 +88,17 @@ class Tempest {
         gaussianPass = new GaussianHorizontalPass(),
         blendPass = new BlendPass(),
         scanlinePass = new ScanlinePass(),
-        actionManager = new ActionManager() {
+        actionManager = new ActionManager(),
+        sinceLastFire = 0.0 {
     moveAction = new MoveAction(actionManager);
+
+    scene = new Scene();
+    levelNode = new SceneNode();
+    levelNode.add(level);
+    scene.add(levelNode);
+
+    bulletNode = new SceneNode();
+    scene.add(bulletNode);
   }
 
   void setup(WebGL.RenderingContext glContext) {
@@ -88,8 +111,10 @@ class Tempest {
     scanlinePass.setup(glContext, width, height);
   }
 
+  Vector2 _playerPosition() => level.playerFacePosition(gameState.playerPosition).clone();
+
   void _moveCameraToPlayerPos() {
-    var facePos = level.playerFacePosition(gameState.playerPosition);
+    var facePos = _playerPosition();
     var newEyePos = new Vector3(
         facePos.x * 0.2, facePos.y * 0.2, camera.eyePosition.z);
     moveAction.moveTo(camera.eyePosition.clone(), newEyePos, 0.08);
@@ -105,15 +130,23 @@ class Tempest {
         gameState.playerPosition = level.setPlayerPosition(gameState.playerPosition + 1);
         _moveCameraToPlayerPos();
       }
+      if (inputState.fire && sinceLastFire >= FIRE_DELAY) {
+        // TODO: Fix setup system, cannot fire bullet because it has not been set-up
+        // TODO: Player position needs to have z-coordinate too
+        var pos = _playerPosition();
+        bulletNode.add(new Bullet(new Vector3(pos.x, pos.y, -1.0), new Vector3(0.0, 0.0, -1.0)));
+        sinceLastFire = 0.0;
+      }
     }
+    sinceLastFire += timeStep;
 
     actionManager.update(timeStep);
 
-    // TODO: Replace with proper ticker
+    // TODO: Replace with onTick/onUpdate callack
     if (moveAction.current != null && moveAction.current != camera.eyePosition) {
       camera.eyePosition = moveAction.current;
     }
-    level.update(timeStep);
+    scene.update(timeStep);
   }
 
   void render(double timeStep, WebGL.RenderingContext glContext) {
@@ -124,7 +157,10 @@ class Tempest {
       glContext.clear(
           WebGL.RenderingContext.COLOR_BUFFER_BIT |
           WebGL.RenderingContext.DEPTH_BUFFER_BIT);
-      level.render(gl, camera.cameraTransform);
+      var cameraTransform = camera.cameraTransform;
+
+      // TODO: Depth buffer doesn't work without extensions in WebGL 1.x do a scene sort
+      scene.render(gl, cameraTransform);
     }
     captureProcess.withBind(glContext, draw);
     gaussianPass.process(glContext, captureProcess._fboTex);
@@ -141,6 +177,7 @@ class Tempest {
         inputState.moveRight = true;
         break;
       case KEY_FIRE:
+        inputState.fire = true;
         break;
       default:
         break;
@@ -156,6 +193,7 @@ class Tempest {
         inputState.moveRight = false;
         break;
       case KEY_FIRE:
+        inputState.fire = false;
         break;
       default:
         break;
