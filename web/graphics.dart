@@ -22,12 +22,16 @@ class GraphicsContext {
                       String fragmentShaderSource, List<String> uniforms,
                       List<String> attributes) {
     assert(!_shaders.containsKey(name));
-    _shaders[name] = new Shader(_gl, vertexShaderSource, fragmentShaderSource,
+    var shader = new Shader(_gl, vertexShaderSource, fragmentShaderSource,
         uniforms, attributes);
+    assert(shader.isValid);
+    _shaders[name] = shader;
   }
 
   Shader getShader(String name) {
-    return _shaders[name];
+    var shader = _shaders[name];
+    assert(shader != null);
+    return shader;
   }
 
   void useShader(Shader shader) {

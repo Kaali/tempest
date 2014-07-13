@@ -242,7 +242,7 @@ class TempestApplication {
                             String fragmentShaderUri, List<String> uniforms,
                             List<String> attributes) {
     return HttpRequest.getString(vertexShaderUri).then((vertexShader) {
-      HttpRequest.getString(fragmentShaderUri).then((fragmentShader) {
+      return HttpRequest.getString(fragmentShaderUri).then((fragmentShader) {
         return gc.createShader(name, vertexShader, fragmentShader, uniforms,
             attributes);
       });
@@ -251,13 +251,19 @@ class TempestApplication {
 
   Future setupAssets() {
     Future<Shader> weaponShader = loadShader(
-        'weapon', 'weapon_vertex.glsl', 'weapon_fragment.glsl',
-        ['uCameraTransform', 'uModelTransform'], ['aPosition', 'aTexCoord']);
-    weaponShader.then((_) {
+        'weapon',
+        'weapon_vertex.glsl', 'weapon_fragment.glsl',
+        ['uCameraTransform', 'uModelTransform'],
+        ['aPosition', 'aTexCoord']);
+    Future<Shader> levelShader = loadShader(
+        'level',
+        'level_vertex.glsl', 'level_fragment.glsl',
+        ['uCameraTransform', 'uModelTransform', 'uActive'],
+        ['aPosition', 'aTexCoord']);
+    return Future.wait([weaponShader, levelShader]).then((_) {
       tempest = new Tempest(aspectRatio, width, height);
       tempest.setup(gc);
     });
-    return weaponShader;
   }
 
   void bind() {

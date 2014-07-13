@@ -53,70 +53,16 @@ abstract class Level extends GameObject {
     }
     _faces.forEach((face) => face.setup(gl));
 
-    _setupProgram(gl);
+    _setupProgram(gc);
   }
 
-  void _setupProgram(WebGL.RenderingContext gl) {
-    var vertexShader = '''
-    attribute vec3 aPosition;
-    attribute vec2 aTexCoord;
-    uniform mat4 uCameraTransform;
-    uniform mat4 uModelTransform;
-    uniform int uActive;
-
-    varying vec2 vTexCoord;
-    varying float vActive;
-
-    void main(void) {
-      vec4 pos = uCameraTransform * uModelTransform * vec4(aPosition, 1.0);
-      gl_Position = pos;
-      vTexCoord = aTexCoord;
-      vActive = uActive == 1 ? 1.0 : 0.0;
-    }
-    ''';
-
-    var fragmentShader = '''
-    precision highp float;
-
-    varying vec2 vTexCoord;
-    varying float vActive;
-
-    void main(void) {
-      float width = 0.04;
-      float edgeX = (vTexCoord.x < width || vTexCoord.x > 1.0 - width) ? 1.0 : 0.0;
-      float edgeY = (vTexCoord.y < width || vTexCoord.y > 1.0 - width) ? 1.0 : 0.0;
-      float edge = min(1.0, edgeX + edgeY);
-      if (edge == 1.0) {
-        // Edges
-        gl_FragColor = vec4(0.2 * vActive, 0.3 * vActive, 1.0 * edge, 1.0);
-      } else {
-        // Inner
-        gl_FragColor = vec4(0.025, 0.025, 0.05 + (0.2 * vActive), 1.0);
-      }
-
-      // fog test just for kicks
-      float fogNear = 0.1;
-      float fogFar = 4.0;
-      float depth = gl_FragCoord.z / gl_FragCoord.w;
-      float fog = smoothstep(fogNear, fogFar, depth);
-      gl_FragColor = mix(gl_FragColor, vec4(0.0, 0.0, 0.0, gl_FragColor.w), fog);
-    }
-    ''';
-
-    _shader = new Shader(gl, vertexShader, fragmentShader, [], []);
-    _shader._compile(gl);
-    _shader._link(gl);
-
-    _uCameraTransform = gl.getUniformLocation(_shader._program,'uCameraTransform');
-    assert(_uCameraTransform != -1);
-    _uModelTransform = gl.getUniformLocation(_shader._program,'uModelTransform');
-    assert(_uModelTransform != -1);
-    _uActive = gl.getUniformLocation(_shader._program,'uActive');
-    assert(_uActive != -1);
-    _aPosition = gl.getAttribLocation(_shader._program, 'aPosition');
-    assert(_aPosition != -1);
-    _aUV = gl.getAttribLocation(_shader._program, 'aTexCoord');
-    assert(_aUV != -1);
+  void _setupProgram(GraphicsContext gc) {
+    _shader = gc.getShader('level');
+    _uCameraTransform = _shader.getUniform('uCameraTransform');
+    _uModelTransform = _shader.getUniform('uModelTransform');
+    _uActive = _shader.getUniform('uActive');
+    _aPosition = _shader.getAttribute('aPosition');
+    _aUV = _shader.getAttribute('aTexCoord');
   }
 
   void update(double timeStep) {

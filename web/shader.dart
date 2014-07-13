@@ -8,6 +8,7 @@ class Shader {
   WebGL.Program _program;
   Map<String, WebGL.UniformLocation> _uniforms;
   Map<String, int> _attributes;
+  bool isValid;
 
   WebGL.Program get program => _program;
 
@@ -15,10 +16,12 @@ class Shader {
          this._fragmentShaderSource, List<String> uniforms,
          List<String> attributes)
       : _uniforms = new Map<String, WebGL.UniformLocation>(),
-        _attributes = new Map<String, int>() {
+        _attributes = new Map<String, int>(),
+        isValid = false {
     if (_compile(gl)) {
       if (_link(gl)) {
         _setupProgram(gl, uniforms, attributes);
+        isValid = true;
       }
     }
   }
