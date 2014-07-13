@@ -37,7 +37,7 @@ abstract class Level extends GameObject {
 
   int get numOfFaces;
   List<List<double>> vertices();
-  Vector2 playerFacePosition(int position);
+  Vector3 playerFacePosition(int position);
   int setPlayerPosition(int position) {
     _playerPosition = position % numOfFaces;
     return _playerPosition;
@@ -87,7 +87,7 @@ abstract class Level extends GameObject {
 
 class CylinderLevel extends Level {
   List<List<double>> _vertices;
-  List<Vector2> _playerFacePositions;
+  List<Vector3> _playerFacePositions;
 
   CylinderLevel() {
     _generateFaces();
@@ -100,7 +100,7 @@ class CylinderLevel extends Level {
   List<List<double>> vertices() => _vertices;
 
   @override
-  Vector2 playerFacePosition(int position) {
+  Vector3 playerFacePosition(int position) {
     return _playerFacePositions[position];
   }
 
@@ -113,7 +113,7 @@ class CylinderLevel extends Level {
       }
     }
     _vertices = new List<List<double>>();
-    _playerFacePositions = new List<Vector2>();
+    _playerFacePositions = new List<Vector3>();
     var sides = numOfFaces;
     var theta = 2.0 * Math.PI / sides;
     var c = Math.cos(theta);
@@ -137,7 +137,7 @@ class CylinderLevel extends Level {
       _vertices.add(vertices);
 
       // TODO: Seems to be wrong
-      _playerFacePositions.add(new Vector2(middle(x, nextX), y));
+      _playerFacePositions.add(new Vector3(middle(x, nextX), y, 0.0));
 
       x = nextX;
       y = nextY;

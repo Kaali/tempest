@@ -112,7 +112,7 @@ class Tempest {
     scanlinePass.setup(gc, width, height);
   }
 
-  Vector2 _playerPosition() => level.playerFacePosition(gameState.playerPosition).clone();
+  Vector3 _playerPosition() => level.playerFacePosition(gameState.playerPosition).clone();
 
   void _moveCameraToPlayerPos() {
     var facePos = _playerPosition();
@@ -133,7 +133,6 @@ class Tempest {
       }
       if (inputState.fire && sinceLastFire >= FIRE_DELAY) {
         // TODO: Fix setup system, cannot fire bullet because it has not been set-up
-        // TODO: Player position needs to have z-coordinate too
         var pos = _playerPosition();
         bulletNode.add(new Bullet(new Vector3(pos.x, pos.y, -1.0), new Vector3(0.0, 0.0, -1.0)));
         sinceLastFire = 0.0;
