@@ -136,8 +136,7 @@ class CylinderLevel extends Level {
       ]);
       _vertices.add(vertices);
 
-      // TODO: Seems to be wrong
-      _playerFacePositions.add(new Vector3(middle(x, nextX), y, 0.0));
+      _playerFacePositions.add(new Vector3(middle(x, nextX), middle(y, nextY), 0.0));
 
       x = nextX;
       y = nextY;
