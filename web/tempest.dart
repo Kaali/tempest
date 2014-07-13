@@ -100,6 +100,9 @@ class Tempest {
 
     bulletNode = new SceneNode();
     scene.add(bulletNode);
+
+    camera.eyePosition = _cameraPosition();
+    level.setPlayerPosition(gameState.playerPosition);
   }
 
   void setup(GraphicsContext gc) {
@@ -114,11 +117,14 @@ class Tempest {
 
   Vector3 _playerPosition() => level.playerFacePosition(gameState.playerPosition).clone();
 
-  void _moveCameraToPlayerPos() {
+  Vector3 _cameraPosition() {
     var facePos = _playerPosition();
-    var newEyePos = new Vector3(
-        facePos.x * 0.2, facePos.y * 0.2, camera.eyePosition.z);
-    moveAction.moveTo(camera.eyePosition.clone(), newEyePos, 0.08);
+    return new Vector3(
+      facePos.x * 0.2, facePos.y * 0.2, camera.eyePosition.z);
+  }
+
+  void _moveCameraToPlayerPos() {
+    moveAction.moveTo(camera.eyePosition.clone(), _cameraPosition(), 0.08);
   }
 
   void update(double timeStep) {
