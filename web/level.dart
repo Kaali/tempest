@@ -43,7 +43,8 @@ abstract class Level extends GameObject {
     return _playerPosition;
   }
 
-  void setup(WebGL.RenderingContext gl) {
+  void setup(GraphicsContext gc) {
+    var gl = gc.gl;
     _faces = [];
     var idx = 0;
     for (var face in vertices()) {
@@ -102,27 +103,28 @@ abstract class Level extends GameObject {
     }
     ''';
 
-    _shader = new Shader(vertexShader, fragmentShader);
-    _shader.compile(gl);
-    _shader.link(gl);
+    _shader = new Shader(gl, vertexShader, fragmentShader, [], []);
+    _shader._compile(gl);
+    _shader._link(gl);
 
-    _uCameraTransform = gl.getUniformLocation(_shader.program,'uCameraTransform');
+    _uCameraTransform = gl.getUniformLocation(_shader._program,'uCameraTransform');
     assert(_uCameraTransform != -1);
-    _uModelTransform = gl.getUniformLocation(_shader.program,'uModelTransform');
+    _uModelTransform = gl.getUniformLocation(_shader._program,'uModelTransform');
     assert(_uModelTransform != -1);
-    _uActive = gl.getUniformLocation(_shader.program,'uActive');
+    _uActive = gl.getUniformLocation(_shader._program,'uActive');
     assert(_uActive != -1);
-    _aPosition = gl.getAttribLocation(_shader.program, 'aPosition');
+    _aPosition = gl.getAttribLocation(_shader._program, 'aPosition');
     assert(_aPosition != -1);
-    _aUV = gl.getAttribLocation(_shader.program, 'aTexCoord');
+    _aUV = gl.getAttribLocation(_shader._program, 'aTexCoord');
     assert(_aUV != -1);
   }
 
   void update(double timeStep) {
   }
 
-  void render(WebGL.RenderingContext gl, Float32List cameraTransform) {
-    gl.useProgram(_shader.program);
+  void render(GraphicsContext gc, Float32List cameraTransform) {
+    var gl = gc.gl;
+    gl.useProgram(_shader._program);
     gl.uniformMatrix4fv(_uCameraTransform, false, cameraTransform);
 
     var modelTransform = new Matrix4.translation(_position);

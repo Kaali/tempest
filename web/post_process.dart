@@ -14,7 +14,7 @@ abstract class PostProcessPass {
   }
 
   WebGL.Texture get outputTex => _fboTex;
-  WebGL.Program get program => _shader.program;
+  WebGL.Program get program => _shader._program;
 
   String get _fragmentShader;
   void _bindShader(WebGL.RenderingContext gl);
@@ -65,17 +65,18 @@ abstract class PostProcessPass {
     }
     ''';
 
-    _shader = new Shader(vertexShader, _fragmentShader);
-    _shader.compile(gl);
-    _shader.link(gl);
+    _shader = new Shader(gl, vertexShader, _fragmentShader, [], []);
+    _shader._compile(gl);
+    _shader._link(gl);
 
-    _aPosition = gl.getAttribLocation(_shader.program, 'aPosition');
+    _aPosition = gl.getAttribLocation(_shader._program, 'aPosition');
     assert(_aPosition != 0);
-    _aTexCoord = gl.getAttribLocation(_shader.program, 'aTexCoord');
+    _aTexCoord = gl.getAttribLocation(_shader._program, 'aTexCoord');
     assert(_aTexCoord != 0);
   }
 
-  void setup(WebGL.RenderingContext gl, int width, int height) {
+  void setup(GraphicsContext gc, int width, int height) {
+    var gl = gc.gl;
     _width = width;
     _height = height;
 
@@ -94,7 +95,7 @@ abstract class PostProcessPass {
   }
 
   void _draw(WebGL.RenderingContext gl) {
-    gl.useProgram(_shader.program);
+    gl.useProgram(_shader._program);
     _bindShader(gl);
     _vertexUVBuffer.bind(gl, _aPosition, _aTexCoord);
     _vertexUVBuffer.draw(gl);

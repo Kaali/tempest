@@ -17,6 +17,7 @@ part 'post_process.dart';
 part 'action.dart';
 part 'weapons.dart';
 part 'scene.dart';
+part 'graphics.dart';
 
 double timestamp() {
   if (window.performance != null) {
@@ -31,9 +32,9 @@ abstract class GameObject {
 
   GameObject() : destroyed = false;
 
-  void setup(WebGL.RenderingContext gl);
+  void setup(GraphicsContext gc);
   void update(double timeStep);
-  void render(WebGL.RenderingContext gl, Float32List cameraTransform);
+  void render(GraphicsContext gc, Float32List cameraTransform);
 }
 
 class GameState {
@@ -101,14 +102,14 @@ class Tempest {
     scene.add(bulletNode);
   }
 
-  void setup(WebGL.RenderingContext glContext) {
+  void setup(GraphicsContext gc) {
     // TODO: Async setup and manager for shaders etc.
-    level.setup(glContext);
-    captureProcess.setup(glContext, width, height);
+    level.setup(gc);
+    captureProcess.setup(gc, width, height);
     // TODO: Use aspect ratio size for gaussian
-    gaussianPass.setup(glContext, width, height);
-    blendPass.setup(glContext, width, height);
-    scanlinePass.setup(glContext, width, height);
+    gaussianPass.setup(gc, width, height);
+    blendPass.setup(gc, width, height);
+    scanlinePass.setup(gc, width, height);
   }
 
   Vector2 _playerPosition() => level.playerFacePosition(gameState.playerPosition).clone();
@@ -149,23 +150,24 @@ class Tempest {
     scene.update(timeStep);
   }
 
-  void render(double timeStep, WebGL.RenderingContext glContext) {
+  void render(double timeStep, GraphicsContext gc) {
+    var gl = gc.gl;
     void draw(WebGL.RenderingContext gl) {
-      glContext.viewport(0, 0, width, height);
-      glContext.clearColor(0.0, 0.0, 0.0, 1.0);
-      glContext.clearDepth(1.0);
-      glContext.clear(
+      gl.viewport(0, 0, width, height);
+      gl.clearColor(0.0, 0.0, 0.0, 1.0);
+      gl.clearDepth(1.0);
+      gl.clear(
           WebGL.RenderingContext.COLOR_BUFFER_BIT |
           WebGL.RenderingContext.DEPTH_BUFFER_BIT);
       var cameraTransform = camera.cameraTransform;
 
       // TODO: Depth buffer doesn't work without extensions in WebGL 1.x do a scene sort
-      scene.render(gl, cameraTransform);
+      scene.render(gc, cameraTransform);
     }
-    captureProcess.withBind(glContext, draw);
-    gaussianPass.process(glContext, captureProcess._fboTex);
-    blendPass.process(glContext, captureProcess._fboTex, gaussianPass.outputTex);
-    scanlinePass.draw(glContext, blendPass.outputTex);
+    captureProcess.withBind(gl, draw);
+    gaussianPass.process(gl, captureProcess._fboTex);
+    blendPass.process(gl, captureProcess._fboTex, gaussianPass.outputTex);
+    scanlinePass.draw(gl, blendPass.outputTex);
   }
 
   void onKeyDown(KeyboardEvent event) {
@@ -202,6 +204,7 @@ class Tempest {
 }
 
 class TempestApplication {
+  GraphicsContext gc;
   WebGL.RenderingContext glContext;
   CanvasElement canvas;
   Tempest tempest;
@@ -226,6 +229,7 @@ class TempestApplication {
 
     canvas.width = canvas.parent.client.width;
     canvas.height = 400;
+    gc = new GraphicsContext(glContext, canvas.width, canvas.height);
 
     Future f = setupAssets();
     f.then((_) {
@@ -234,10 +238,26 @@ class TempestApplication {
     });
   }
 
+  Future<Shader> loadShader(String name, String vertexShaderUri,
+                            String fragmentShaderUri, List<String> uniforms,
+                            List<String> attributes) {
+    return HttpRequest.getString(vertexShaderUri).then((vertexShader) {
+      HttpRequest.getString(fragmentShaderUri).then((fragmentShader) {
+        return gc.createShader(name, vertexShader, fragmentShader, uniforms,
+            attributes);
+      });
+    });
+  }
+
   Future setupAssets() {
-    tempest = new Tempest(aspectRatio, width, height);
-    tempest.setup(glContext);
-    return new Future(() => null);
+    Future<Shader> weaponShader = loadShader(
+        'weapon', 'weapon_vertex.glsl', 'weapon_fragment.glsl',
+        ['uCameraTransform', 'uModelTransform'], ['aPosition', 'aTexCoord']);
+    weaponShader.then((_) {
+      tempest = new Tempest(aspectRatio, width, height);
+      tempest.setup(gc);
+    });
+    return weaponShader;
   }
 
   void bind() {
@@ -270,7 +290,7 @@ class TempestApplication {
   }
 
   void render(double timeStep) {
-    tempest.render(timeStep, glContext);
+    tempest.render(timeStep, gc);
   }
 
   void requestRAF() {

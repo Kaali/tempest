@@ -17,8 +17,8 @@ class SceneNode {
     _objects.forEach((gameObject) => gameObject.update(timeStep));
   }
 
-  void render(WebGL.RenderingContext gl, Float32List cameraTransform) {
-    _objects.forEach((gameObject) => gameObject.render(gl, cameraTransform));
+  void render(GraphicsContext gc, Float32List cameraTransform) {
+    _objects.forEach((gameObject) => gameObject.render(gc, cameraTransform));
   }
 
   void cleanup() {
@@ -44,8 +44,8 @@ class Scene {
     _nodes.forEach((node) => node.cleanup());
   }
 
-  void render(WebGL.RenderingContext gl, Float32List cameraTransform) {
-    _nodes.forEach((node) => node.render(gl, cameraTransform));
+  void render(GraphicsContext gc, Float32List cameraTransform) {
+    _nodes.forEach((node) => node.render(gc, cameraTransform));
   }
 }
 

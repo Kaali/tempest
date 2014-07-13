@@ -1,35 +1,70 @@
 part of tempest;
 
 class Shader {
-  final String vertexShaderSource;
-  final String fragmentShaderSource;
-  WebGL.Shader vertexShader;
-  WebGL.Shader fragmentShader;
-  WebGL.Program program;
+  final String _vertexShaderSource;
+  final String _fragmentShaderSource;
+  WebGL.Shader _vertexShader;
+  WebGL.Shader _fragmentShader;
+  WebGL.Program _program;
+  Map<String, WebGL.UniformLocation> _uniforms;
+  Map<String, int> _attributes;
 
-  Shader(this.vertexShaderSource, this.fragmentShaderSource);
+  WebGL.Program get program => _program;
 
-  void compile(WebGL.RenderingContext glContext) {
-    vertexShader = glContext.createShader(WebGL.RenderingContext.VERTEX_SHADER);
-    glContext.shaderSource(vertexShader, vertexShaderSource);
-    glContext.compileShader(vertexShader);
-    print(glContext.getShaderInfoLog(vertexShader));
-
-    fragmentShader = glContext.createShader(WebGL.RenderingContext.FRAGMENT_SHADER);
-    glContext.shaderSource(fragmentShader, fragmentShaderSource);
-    glContext.compileShader(fragmentShader);
-    print(glContext.getShaderInfoLog(fragmentShader));
+  Shader(WebGL.RenderingContext gl, this._vertexShaderSource,
+         this._fragmentShaderSource, List<String> uniforms,
+         List<String> attributes)
+      : _uniforms = new Map<String, WebGL.UniformLocation>(),
+        _attributes = new Map<String, int>() {
+    if (_compile(gl)) {
+      if (_link(gl)) {
+        _setupProgram(gl, uniforms, attributes);
+      }
+    }
   }
 
-  void link(WebGL.RenderingContext glContext) {
-    assert(program == null);
-    assert(vertexShader != null);
-    assert(fragmentShader != null);
+  WebGL.UniformLocation getUniform(String name) => _uniforms[name];
+  int getAttribute(String name) => _attributes[name];
 
-    program = glContext.createProgram();
-    glContext.attachShader(program, vertexShader);
-    glContext.attachShader(program, fragmentShader);
-    glContext.linkProgram(program);
-    //print(glContext.getProgramInfoLog(program));
+  bool _compile(WebGL.RenderingContext gl) {
+    _vertexShader = gl.createShader(WebGL.RenderingContext.VERTEX_SHADER);
+    gl.shaderSource(_vertexShader, _vertexShaderSource);
+    gl.compileShader(_vertexShader);
+    if (!gl.getShaderParameter(_vertexShader, WebGL.COMPILE_STATUS)) {
+      print(gl.getShaderInfoLog(_vertexShader));
+      return false;
+    }
+
+    _fragmentShader = gl.createShader(WebGL.RenderingContext.FRAGMENT_SHADER);
+    gl.shaderSource(_fragmentShader, _fragmentShaderSource);
+    gl.compileShader(_fragmentShader);
+    if (!gl.getShaderParameter(_fragmentShader, WebGL.COMPILE_STATUS)) {
+      print(gl.getShaderInfoLog(_fragmentShader));
+      return false;
+    }
+
+    return true;
+  }
+
+  bool _link(WebGL.RenderingContext gl) {
+    assert(_program == null);
+    assert(_vertexShader != null);
+    assert(_fragmentShader != null);
+
+    _program = gl.createProgram();
+    gl.attachShader(_program, _vertexShader);
+    gl.attachShader(_program, _fragmentShader);
+    gl.linkProgram(_program);
+    if (!gl.getProgramParameter(_program, WebGL.LINK_STATUS)) {
+      print(gl.getProgramInfoLog(_program));
+      return false;
+    }
+    return true;
+  }
+
+  void _setupProgram(WebGL.RenderingContext gl, List<String> uniforms,
+                     List<String> attributes) {
+    uniforms.forEach((name) => _uniforms[name] = gl.getUniformLocation(_program, name));
+    attributes.forEach((name) => _attributes[name] = gl.getAttribLocation(_program, name));
   }
 }
