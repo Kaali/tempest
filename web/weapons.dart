@@ -1,5 +1,23 @@
 part of tempest;
 
+class BulletPool {
+  List<Bullet> _bullets;
+
+  BulletPool(int count) : _bullets = new List<Bullet>() {
+    var zero = new Vector3(0.0, 0.0, 0.0);
+    for (var i = 0; i < count; ++i) {
+      var bullet = new Bullet(zero, zero);
+      bullet.destroyed = true;
+      _bullets.add(bullet);
+    }
+  }
+
+  Bullet get() {
+    // TODO: Optimize lookup with free lists
+    return _bullets.firstWhere((bullet) => bullet.destroyed, orElse: () => null);
+  }
+}
+
 // TODO: Refactor as general drawable wireframe object
 // TODO: Almost identical code is in Level
 class BulletDrawable {
@@ -56,6 +74,7 @@ class BulletDrawable {
 
 class Bullet extends GameObject {
   static final BulletDrawable _bulletDrawable = new BulletDrawable();
+  static final BulletPool _pool = new BulletPool(50);
 
   Vector3 _position;
   Vector3 _velocity;
@@ -64,6 +83,23 @@ class Bullet extends GameObject {
   Bullet(Vector3 this._position, Vector3 this._velocity, {double lifetime: 4.0})
       : _lifetime = lifetime;
 
+  factory Bullet.pooled(Vector3 position, Vector3 velocity, {double lifetime: 4.0}) {
+    var bullet = _pool.get();
+    if (bullet != null) {
+      bullet._position = position;
+      bullet._velocity = velocity;
+      bullet._lifetime = lifetime;
+      bullet.destroyed = false;
+    }
+    return bullet;
+  }
+
+  void reset(Vector3 position, Vector3 velocity, double lifetime) {
+    _position = position.clone();
+    _velocity = velocity.clone();
+    _lifetime = lifetime;
+    destroyed = false;
+  }
 
   @override
   void setup(GraphicsContext gc) {

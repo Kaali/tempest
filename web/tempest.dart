@@ -140,7 +140,10 @@ class Tempest {
       if (inputState.fire && sinceLastFire >= FIRE_DELAY) {
         // TODO: Fix setup system, cannot fire bullet because it has not been set-up
         var pos = _playerPosition();
-        bulletNode.add(new Bullet(new Vector3(pos.x, pos.y, -1.0), new Vector3(0.0, 0.0, -1.0)));
+        var bullet = new Bullet.pooled(new Vector3(pos.x, pos.y, -1.0), new Vector3(0.0, 0.0, -1.0));
+        if (bullet != null) {
+          bulletNode.add(bullet);
+        }
         sinceLastFire = 0.0;
       }
     }
