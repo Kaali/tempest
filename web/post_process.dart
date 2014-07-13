@@ -16,11 +16,11 @@ abstract class PostProcessPass {
   WebGL.Texture get outputTex => _fboTex;
   WebGL.Program get program => _shader._program;
 
-  String get _fragmentShader;
-  void _bindShader(WebGL.RenderingContext gl);
-  void _setupShader(WebGL.RenderingContext gl);
+  void _bindShader(GraphicsContext gc);
+  Shader _setupShader(GraphicsContext gc);
 
-  WebGL.Texture _createTexture(WebGL.RenderingContext gl, int width, int height) {
+  WebGL.Texture _createTexture(GraphicsContext gc, int width, int height) {
+    var gl = gc.gl;
     var tex = gl.createTexture();
     gl.bindTexture(WebGL.TEXTURE_2D, tex);
     gl.texParameteri(WebGL.TEXTURE_2D, WebGL.TEXTURE_WRAP_S, WebGL.CLAMP_TO_EDGE);
@@ -33,7 +33,8 @@ abstract class PostProcessPass {
     return tex;
   }
 
-  void _createFBO(WebGL.RenderingContext gl) {
+  void _createFBO(GraphicsContext gc) {
+    var gl = gc.gl;
     _fbo = gl.createFramebuffer();
     gl.bindFramebuffer(WebGL.FRAMEBUFFER, _fbo);
     gl.framebufferTexture2D(
@@ -41,7 +42,7 @@ abstract class PostProcessPass {
     gl.bindFramebuffer(WebGL.FRAMEBUFFER, null);
   }
 
-  void _createVertexBuffer(WebGL.RenderingContext gl) {
+  void _createVertexBuffer(GraphicsContext gc) {
     var vertices = [
         -1.0, -1.0, 0.0, 0.0, 0.0,
         -1.0, 1.0, 0.0, 0.0, 1.0,
@@ -49,54 +50,34 @@ abstract class PostProcessPass {
         1.0, -1.0, 0.0, 1.0, 0.0,
     ];
     _vertexUVBuffer = new VertexUVBuffer(
-        gl, vertices, [0, 1, 2, 3],
+        gc.gl, vertices, [0, 1, 2, 3],
         mode:WebGL.RenderingContext.TRIANGLE_FAN);
   }
 
-  void _createShader(WebGL.RenderingContext gl) {
-    var vertexShader = '''
-    attribute vec3 aPosition;
-    attribute vec2 aTexCoord;
-    varying vec2 vTexCoord;
-
-    void main() {
-      vTexCoord = aTexCoord;
-      gl_Position = vec4(aPosition, 1.0);
-    }
-    ''';
-
-    _shader = new Shader(gl, vertexShader, _fragmentShader, [], []);
-    _shader._compile(gl);
-    _shader._link(gl);
-
-    _aPosition = gl.getAttribLocation(_shader._program, 'aPosition');
-    assert(_aPosition != 0);
-    _aTexCoord = gl.getAttribLocation(_shader._program, 'aTexCoord');
-    assert(_aTexCoord != 0);
-  }
-
   void setup(GraphicsContext gc, int width, int height) {
-    var gl = gc.gl;
     _width = width;
     _height = height;
 
-    _fboTex = _createTexture(gl, width, height);
-    _createFBO(gl);
-    _createVertexBuffer(gl);
-    _createShader(gl);
-    _setupShader(gl);
+    _fboTex = _createTexture(gc, width, height);
+    _createFBO(gc);
+    _createVertexBuffer(gc);
+    _shader = _setupShader(gc);
+    _aPosition = _shader.getAttribute('aPosition');
+    _aTexCoord = _shader.getAttribute('aTexCoord');
   }
 
   // Capture draws in fun to FBO texture
-  void withBind(WebGL.RenderingContext gl, void fun(WebGL.RenderingContext gl)) {
+  void withBind(GraphicsContext gc, void fun(GraphicsContext gc)) {
+    var gl = gc.gl;
     gl.bindFramebuffer(WebGL.FRAMEBUFFER, _fbo);
-    fun(gl);
+    fun(gc);
     gl.bindFramebuffer(WebGL.FRAMEBUFFER, null);
   }
 
-  void _draw(WebGL.RenderingContext gl) {
+  void _draw(GraphicsContext gc) {
+    var gl = gc.gl;
     gl.useProgram(_shader._program);
-    _bindShader(gl);
+    _bindShader(gc);
     _vertexUVBuffer.bind(gl, _aPosition, _aTexCoord);
     _vertexUVBuffer.draw(gl);
   }
@@ -109,37 +90,26 @@ class CaptureProcess extends PostProcessPass {
   }
 
   @override
-  String get _fragmentShader => '''
-    precision highp float;
-
-    uniform sampler2D uSampler0;
-    varying vec2 vTexCoord;
-
-    void main() {
-      gl_FragColor = texture2D(uSampler0, vTexCoord);
-    }
-    ''';
-
-
-  @override
-  void _bindShader(WebGL.RenderingContext gl) {
+  void _bindShader(GraphicsContext gc) {
+    var gl = gc.gl;
     gl.activeTexture(WebGL.TEXTURE0);
     gl.bindTexture(WebGL.TEXTURE_2D, outputTex);
     gl.uniform1i(_uSampler0, 0);
   }
 
   @override
-  void _setupShader(WebGL.RenderingContext gl) {
-    _uSampler0 = gl.getUniformLocation(program, 'uSampler0');
-    assert(_uSampler0 != 0);
+  Shader _setupShader(GraphicsContext gc) {
+    var shader = gc.getShader('capture');
+    _uSampler0 = shader.getUniform('uSampler0');
+    return shader;
   }
 
-  void process(WebGL.RenderingContext gl) {
-    withBind(gl, draw);
+  void process(GraphicsContext gc) {
+    withBind(gc, draw);
   }
 
-  void draw(WebGL.RenderingContext gl) {
-    _draw(gl);
+  void draw(GraphicsContext gc) {
+    _draw(gc);
   }
 }
 
@@ -151,48 +121,9 @@ class GaussianHorizontalPass extends PostProcessPass {
   WebGL.UniformLocation _uBlurStrength;
   WebGL.Texture _inputTex;
 
-  // Adapted from:
-  // https://web.archive.org/web/20121003045153/http://devmaster.net/posts/3100/shader-effects-glow-and-bloom
   @override
-  String get _fragmentShader => '''
-    precision highp float;
-
-    uniform float uSize;
-    uniform int uBlurAmount;
-    uniform float uBlurScale;
-    uniform float uBlurStrength;
-
-    uniform sampler2D uSampler0;
-    varying vec2 vTexCoord;
-
-    float Gaussian (float x, float deviation) {
-      return (1.0 / sqrt(2.0 * 3.141592 * deviation)) * exp(-((x * x) / (2.0 * deviation)));
-    }
-
-    void main() {
-      float halfBlur = float(uBlurAmount) * 0.5;
-      vec4 color = vec4(0.0);
-      vec4 texColor = vec4(0.0);
-
-      float deviation = halfBlur * 0.35;
-      deviation *= deviation;
-      float strength = 1.0 - uBlurStrength;
-
-      for (int i = 0; i < 10; ++i) {
-        if (i >= uBlurAmount) break;
-        float offset = float(i) - halfBlur;
-        texColor = texture2D(uSampler0, vTexCoord + vec2(offset * uSize * uBlurScale, 0.0)) *
-          Gaussian(offset * strength, deviation);
-        color += texColor;
-      }
-
-      gl_FragColor = clamp(color, 0.0, 1.0);
-      gl_FragColor.w = 1.0;
-    }
-    ''';
-
-  @override
-  void _bindShader(WebGL.RenderingContext gl) {
+  void _bindShader(GraphicsContext gc) {
+    var gl = gc.gl;
     gl.activeTexture(WebGL.TEXTURE0);
     gl.bindTexture(WebGL.TEXTURE_2D, _inputTex);
     gl.uniform1i(_uSampler0, 0);
@@ -204,26 +135,23 @@ class GaussianHorizontalPass extends PostProcessPass {
   }
 
   @override
-  void _setupShader(WebGL.RenderingContext gl) {
-    _uSampler0 = gl.getUniformLocation(program, 'uSampler0');
-    assert(_uSampler0 != 0);
-    _uSize = gl.getUniformLocation(program, 'uSize');
-    assert(_uSize != 0);
-    _uBlurAmount = gl.getUniformLocation(program, 'uBlurAmount');
-    assert(_uBlurAmount != 0);
-    _uBlurScale = gl.getUniformLocation(program, 'uBlurScale');
-    assert(_uBlurScale != 0);
-    _uBlurStrength = gl.getUniformLocation(program, 'uBlurStrength');
-    assert(_uBlurStrength != 0);
+  Shader _setupShader(GraphicsContext gc) {
+    var shader = gc.getShader('gaussian_hor');
+    _uSampler0 = shader.getUniform('uSampler0');
+    _uSize = shader.getUniform('uSize');
+    _uBlurAmount = shader.getUniform('uBlurAmount');
+    _uBlurScale = shader.getUniform('uBlurScale');
+    _uBlurStrength = shader.getUniform('uBlurStrength');
+    return shader;
   }
 
-  void process(WebGL.RenderingContext gl, WebGL.Texture inputTex) {
-    withBind(gl, (gl) => draw(gl, inputTex));
+  void process(GraphicsContext gc, WebGL.Texture inputTex) {
+    withBind(gc, (gc) => draw(gc, inputTex));
   }
 
-  void draw(WebGL.RenderingContext gl, WebGL.Texture inputTex) {
+  void draw(GraphicsContext gc, WebGL.Texture inputTex) {
     _inputTex = inputTex;
-    _draw(gl);
+    _draw(gc);
     _inputTex = null;
   }
 }
@@ -234,32 +162,9 @@ class BlendPass extends PostProcessPass {
   WebGL.Texture _inputTex1;
   WebGL.Texture _inputTex2;
 
-  // Adapted from:
-  // https://web.archive.org/web/20121003045153/http://devmaster.net/posts/3100/shader-effects-glow-and-bloom
-  String get _fragmentShader => '''
-    precision highp float;
-
-    uniform sampler2D uSampler0;
-    uniform sampler2D uSampler1;
-    varying vec2 vTexCoord;
-
-    void main() {
-      vec4 dst = texture2D(uSampler0, vTexCoord);
-      vec4 src = texture2D(uSampler1, vTexCoord);
-
-      src = src * 0.3;
-      gl_FragColor = clamp((src + dst) - (src * dst), 0.0, 1.0);
-      gl_FragColor.w = 1.0;
-      //src = (src * 0.5) + 0.5;
-      //gl_FragColor.xyz = vec3((src.x <= 0.5) ? (dst.x - (1.0 - 2.0 * src.x) * dst.x * (1.0 - dst.x)) : (((src.x > 0.5) && (dst.x <= 0.25)) ? (dst.x + (2.0 * src.x - 1.0) * (4.0 * dst.x * (4.0 * dst.x + 1.0) * (dst.x - 1.0) + 7.0 * dst.x)) : (dst.x + (2.0 * src.x - 1.0) * (sqrt(dst.x) - dst.x))),
-      //  (src.y <= 0.5) ? (dst.y - (1.0 - 2.0 * src.y) * dst.y * (1.0 - dst.y)) : (((src.y > 0.5) && (dst.y <= 0.25)) ? (dst.y + (2.0 * src.y - 1.0) * (4.0 * dst.y * (4.0 * dst.y + 1.0) * (dst.y - 1.0) + 7.0 * dst.y)) : (dst.y + (2.0 * src.y - 1.0) * (sqrt(dst.y) - dst.y))),
-      //  (src.z <= 0.5) ? (dst.z - (1.0 - 2.0 * src.z) * dst.z * (1.0 - dst.z)) : (((src.z > 0.5) && (dst.z <= 0.25)) ? (dst.z + (2.0 * src.z - 1.0) * (4.0 * dst.z * (4.0 * dst.z + 1.0) * (dst.z - 1.0) + 7.0 * dst.z)) : (dst.z + (2.0 * src.z - 1.0) * (sqrt(dst.z) - dst.z))));
-      //gl_FragColor.w = 1.0;
-    }
-    ''';
-
   @override
-  void _bindShader(WebGL.RenderingContext gl) {
+  void _bindShader(GraphicsContext gc) {
+    var gl = gc.gl;
     gl.activeTexture(WebGL.TEXTURE0);
     gl.bindTexture(WebGL.TEXTURE_2D, _inputTex1);
     gl.uniform1i(_uSampler0, 0);
@@ -270,21 +175,21 @@ class BlendPass extends PostProcessPass {
   }
 
   @override
-  void _setupShader(WebGL.RenderingContext gl) {
-    _uSampler0 = gl.getUniformLocation(program, 'uSampler0');
-    assert(_uSampler0 != 0);
-    _uSampler1 = gl.getUniformLocation(program, 'uSampler1');
-    assert(_uSampler1 != 0);
+  Shader _setupShader(GraphicsContext gc) {
+    var shader = gc.getShader('blend');
+    _uSampler0 = shader.getUniform('uSampler0');
+    _uSampler1 = shader.getUniform('uSampler1');
+    return shader;
   }
 
-  void process(WebGL.RenderingContext gl, WebGL.Texture inputTex1, WebGL.Texture inputTex2) {
-    withBind(gl, (gl) => draw(gl, inputTex1, inputTex2));
+  void process(GraphicsContext gc, WebGL.Texture inputTex1, WebGL.Texture inputTex2) {
+    withBind(gc, (gc) => draw(gc, inputTex1, inputTex2));
   }
 
-  void draw(WebGL.RenderingContext gl, WebGL.Texture inputTex1, WebGL.Texture inputTex2) {
+  void draw(GraphicsContext gc, WebGL.Texture inputTex1, WebGL.Texture inputTex2) {
     _inputTex1 = inputTex1;
     _inputTex2 = inputTex2;
-    _draw(gl);
+    _draw(gc);
     _inputTex1 = null;
     _inputTex2 = null;
   }
@@ -296,22 +201,8 @@ class ScanlinePass extends PostProcessPass {
   WebGL.Texture _inputTex;
 
   @override
-  String get _fragmentShader => '''
-    precision highp float;
-
-    uniform float uSize;
-
-    uniform sampler2D uSampler0;
-    varying vec2 vTexCoord;
-
-    void main() {
-      gl_FragColor = texture2D(uSampler0, vTexCoord) * clamp(sin(vTexCoord.y * uSize), 0.7, 1.0);
-      gl_FragColor.w = 1.0;
-    }
-    ''';
-
-  @override
-  void _bindShader(WebGL.RenderingContext gl) {
+  void _bindShader(GraphicsContext gc) {
+    var gl = gc.gl;
     gl.activeTexture(WebGL.TEXTURE0);
     gl.bindTexture(WebGL.TEXTURE_2D, _inputTex);
     gl.uniform1i(_uSampler0, 0);
@@ -320,20 +211,20 @@ class ScanlinePass extends PostProcessPass {
   }
 
   @override
-  void _setupShader(WebGL.RenderingContext gl) {
-    _uSampler0 = gl.getUniformLocation(program, 'uSampler0');
-    assert(_uSampler0 != 0);
-    _uSize = gl.getUniformLocation(program, 'uSize');
-    assert(_uSize != 0);
+  Shader _setupShader(GraphicsContext gc) {
+    var shader = gc.getShader('scanline');
+    _uSampler0 = shader.getUniform('uSampler0');
+    _uSize = shader.getUniform('uSize');
+    return shader;
   }
 
-  void process(WebGL.RenderingContext gl, WebGL.Texture inputTex) {
-    withBind(gl, (gl) => draw(gl, inputTex));
+  void process(GraphicsContext gc, WebGL.Texture inputTex) {
+    withBind(gc, (gc) => draw(gc, inputTex));
   }
 
-  void draw(WebGL.RenderingContext gl, WebGL.Texture inputTex) {
+  void draw(GraphicsContext gc, WebGL.Texture inputTex) {
     _inputTex = inputTex;
-    _draw(gl);
+    _draw(gc);
     _inputTex = null;
   }
 }

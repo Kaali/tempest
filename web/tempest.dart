@@ -160,7 +160,8 @@ class Tempest {
 
   void render(double timeStep, GraphicsContext gc) {
     var gl = gc.gl;
-    void draw(WebGL.RenderingContext gl) {
+    void draw(GraphicsContext gc) {
+      var gl = gc.gl;
       gl.viewport(0, 0, width, height);
       gl.clearColor(0.0, 0.0, 0.0, 1.0);
       gl.clearDepth(1.0);
@@ -172,10 +173,10 @@ class Tempest {
       // TODO: Depth buffer doesn't work without extensions in WebGL 1.x do a scene sort
       scene.render(gc, cameraTransform);
     }
-    captureProcess.withBind(gl, draw);
-    gaussianPass.process(gl, captureProcess._fboTex);
-    blendPass.process(gl, captureProcess._fboTex, gaussianPass.outputTex);
-    scanlinePass.draw(gl, blendPass.outputTex);
+    captureProcess.withBind(gc, draw);
+    gaussianPass.process(gc, captureProcess._fboTex);
+    blendPass.process(gc, captureProcess._fboTex, gaussianPass.outputTex);
+    scanlinePass.draw(gc, blendPass.outputTex);
   }
 
   void onKeyDown(KeyboardEvent event) {
@@ -258,17 +259,40 @@ class TempestApplication {
   }
 
   Future setupAssets() {
-    Future<Shader> weaponShader = loadShader(
+    var commonAttr = ['aPosition', 'aTexCoord'];
+    var shaders = [
+    loadShader(
         'weapon',
         'weapon_vertex.glsl', 'weapon_fragment.glsl',
         ['uCameraTransform', 'uModelTransform'],
-        ['aPosition', 'aTexCoord']);
-    Future<Shader> levelShader = loadShader(
+        commonAttr),
+    loadShader(
         'level',
         'level_vertex.glsl', 'level_fragment.glsl',
         ['uCameraTransform', 'uModelTransform', 'uActive'],
-        ['aPosition', 'aTexCoord']);
-    return Future.wait([weaponShader, levelShader]).then((_) {
+        commonAttr),
+    loadShader(
+        'blend',
+        'postprocess_vertex.glsl', 'blend_fragment.glsl',
+        ['uSampler0', 'uSampler1'],
+        commonAttr),
+    loadShader(
+        'capture',
+        'postprocess_vertex.glsl', 'capture_fragment.glsl',
+        ['uSampler0'],
+        commonAttr),
+    loadShader(
+        'gaussian_hor',
+        'postprocess_vertex.glsl', 'gaussian_hor_fragment.glsl',
+        ['uBlurScale', 'uBlurStrength', 'uSampler0'],
+        commonAttr),
+    loadShader(
+        'scanline',
+        'postprocess_vertex.glsl', 'scanline_fragment.glsl',
+        ['uSize', 'uSampler0'],
+        commonAttr),
+    ];
+    return Future.wait(shaders).then((_) {
       tempest = new Tempest(aspectRatio, width, height);
       tempest.setup(gc);
     });
