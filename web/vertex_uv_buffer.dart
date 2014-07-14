@@ -8,7 +8,7 @@ class VertexUVBuffer {
   int _uvOffset;
   int _mode;
 
-  VertexUVBuffer(WebGL.RenderingContext gl, List<double> vertices,
+  VertexUVBuffer(GraphicsContext gc, List<double> vertices,
                  {List<int> indices : null,
                  int mode : WebGL.RenderingContext.TRIANGLES}) {
     assert(vertices.length % 5 == 0);
@@ -16,6 +16,7 @@ class VertexUVBuffer {
 
     _mode = mode;
 
+    var gl = gc.gl;
     var vertexData = new Float32List.fromList(vertices);
     _vertexBuffer = gl.createBuffer();
     gl.bindBuffer(WebGL.RenderingContext.ARRAY_BUFFER, _vertexBuffer);
@@ -47,11 +48,12 @@ class VertexUVBuffer {
         size, size, 0.0, 1.0, 1.0,
         -size, size, 0.0, 0.0, 1.0,
     ];
-    return new VertexUVBuffer(gc.gl, vertices,
+    return new VertexUVBuffer(gc, vertices,
         mode:WebGL.RenderingContext.TRIANGLE_FAN);
   }
 
-  void bind(WebGL.RenderingContext gl, int positionAttribute, int uvAttribute) {
+  void bind(GraphicsContext gc, int positionAttribute, int uvAttribute) {
+    var gl = gc.gl;
     gl.bindBuffer(WebGL.RenderingContext.ARRAY_BUFFER, _vertexBuffer);
     gl.enableVertexAttribArray(positionAttribute);
     gl.vertexAttribPointer(
@@ -69,7 +71,8 @@ class VertexUVBuffer {
     );
   }
 
-  void draw(WebGL.RenderingContext gl) {
+  void draw(GraphicsContext gc) {
+    var gl = gc.gl;
     if (_indexBuffer == null) {
       gl.drawArrays(_mode, 0, _vertexCount);
     } else {

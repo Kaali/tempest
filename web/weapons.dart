@@ -45,17 +45,16 @@ class BulletDrawable {
   }
 
   void render(GraphicsContext gc, Float32List cameraTransform) {
-    var gl = gc.gl;
-    gl.useProgram(_shader._program);
-    gl.uniformMatrix4fv(_uCameraTransform, false, cameraTransform);
+    gc.useShader(_shader);
+    gc.uniformMatrix4fv(_uCameraTransform, false, cameraTransform);
 
     var modelTransform = new Matrix4.translation(position);
     var modelTransformMatrix = new Float32List(16);
     modelTransform.copyIntoArray(modelTransformMatrix, 0);
-    gl.uniformMatrix4fv(_uModelTransform, false, modelTransformMatrix);
+    gc.uniformMatrix4fv(_uModelTransform, false, modelTransformMatrix);
 
-    _vertexUvBuffer.bind(gl, _aPosition, _aUV);
-    _vertexUvBuffer.draw(gl);
+    _vertexUvBuffer.bind(gc, _aPosition, _aUV);
+    _vertexUvBuffer.draw(gc);
   }
 }
 

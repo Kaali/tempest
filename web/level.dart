@@ -10,14 +10,14 @@ class LevelFace {
 
   LevelFace(int this._index, List<double> this._faces);
 
-  void setup(WebGL.RenderingContext gl) {
-    _vertexUVBuffer = new VertexUVBuffer(gl, _faces,
+  void setup(GraphicsContext gc) {
+    _vertexUVBuffer = new VertexUVBuffer(gc, _faces,
         mode:WebGL.RenderingContext.TRIANGLE_STRIP);
   }
 
-  void render(WebGL.RenderingContext gl, int aPosition, int aUV) {
-    _vertexUVBuffer.bind(gl, aPosition, aUV);
-    _vertexUVBuffer.draw(gl);
+  void render(GraphicsContext gc, int aPosition, int aUV) {
+    _vertexUVBuffer.bind(gc, aPosition, aUV);
+    _vertexUVBuffer.draw(gc);
   }
 }
 
@@ -43,14 +43,13 @@ abstract class Level extends GameObject {
   }
 
   void setup(GraphicsContext gc) {
-    var gl = gc.gl;
     _faces = [];
     var idx = 0;
     for (var face in vertices()) {
       _faces.add(new LevelFace(idx, face));
       idx++;
     }
-    _faces.forEach((face) => face.setup(gl));
+    _faces.forEach((face) => face.setup(gc));
 
     _setupProgram(gc);
   }
@@ -68,18 +67,17 @@ abstract class Level extends GameObject {
   }
 
   void render(GraphicsContext gc, Float32List cameraTransform) {
-    var gl = gc.gl;
-    gl.useProgram(_shader._program);
-    gl.uniformMatrix4fv(_uCameraTransform, false, cameraTransform);
+    gc.useShader(_shader);
+    gc.uniformMatrix4fv(_uCameraTransform, false, cameraTransform);
 
     var modelTransform = new Matrix4.translation(_position);
     var modelTransformMatrix = new Float32List(16);
     modelTransform.copyIntoArray(modelTransformMatrix, 0);
-    gl.uniformMatrix4fv(_uModelTransform, false, modelTransformMatrix);
+    gc.uniformMatrix4fv(_uModelTransform, false, modelTransformMatrix);
 
     for (var face in _faces) {
-      gl.uniform1i(_uActive, face.index == _playerPosition ? 1 : 0);
-      face.render(gl, _aPosition, _aUV);
+      gc.uniform1i(_uActive, face.index == _playerPosition ? 1 : 0);
+      face.render(gc, _aPosition, _aUV);
     }
   }
 }

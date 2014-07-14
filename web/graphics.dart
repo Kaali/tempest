@@ -100,11 +100,58 @@ class GraphicsContext {
 
   void useShaderName(String shaderName) => useShader(getShader(shaderName));
 
-  void uniform1i(WebGL.UniformLocation uniform, int value) {
-    gl.uniform1i(uniform, value);
-  }
+  void uniform1f(WebGL.UniformLocation location, num x) => gl.uniform1f(location, x);
 
-  void uniform1f(WebGL.UniformLocation uniform, num value) {
-    gl.uniform1f(uniform, value);
-  }
+  void uniform1fv(WebGL.UniformLocation location, Float32List v) => gl.uniform1fv(location, v);
+
+  void uniform1i(WebGL.UniformLocation location, int x) => gl.uniform1i(location, x);
+
+  void uniform1iv(WebGL.UniformLocation location, Int32List v) => gl.uniform1iv(location, v);
+
+  void uniform2f(WebGL.UniformLocation location, num x, num y) => gl.uniform2f(location, x, y);
+
+  void uniform2fv(WebGL.UniformLocation location, Float32List v) => gl.uniform2fv(location, v);
+
+  void uniform2i(WebGL.UniformLocation location, int x, int y) => gl.uniform2i(location, x, y);
+
+  void uniform2iv(WebGL.UniformLocation location, Int32List v) => gl.uniform2iv(location, v);
+
+  void uniform3f(WebGL.UniformLocation location, num x, num y, num z) => gl.uniform3f(location, x, y, z);
+
+  void uniform3fv(WebGL.UniformLocation location, Float32List v) => gl.uniform3fv(location, v);
+
+  void uniform3i(WebGL.UniformLocation location, int x, int y, int z) => gl.uniform3i(location, x, y, z);
+
+  void uniform3iv(WebGL.UniformLocation location, Int32List v) => gl.uniform3iv(location, v);
+
+  void uniform4f(WebGL.UniformLocation location, num x, num y, num z, num w) => gl.uniform4f(location, x, y, z, w);
+
+  void uniform4fv(WebGL.UniformLocation location, Float32List v) => gl.uniform4fv(location, v);
+
+  void uniform4i(WebGL.UniformLocation location, int x, int y, int z, int w) => gl.uniform4i(location, x, y, z, w);
+
+  void uniform4iv(WebGL.UniformLocation location, Int32List v) => gl.uniform4iv(location, v);
+
+  void uniformMatrix2fv(WebGL.UniformLocation location, bool transpose, Float32List array) => gl.uniformMatrix2fv(location, transpose, array);
+
+  void uniformMatrix3fv(WebGL.UniformLocation location, bool transpose, Float32List array) => gl.uniformMatrix3fv(location, transpose, array);
+
+  void uniformMatrix4fv(WebGL.UniformLocation location, bool transpose, Float32List array) => gl.uniformMatrix4fv(location, transpose, array);
+
+  void vertexAttrib1f(int indx, num x) => gl.vertexAttrib1f(indx, x);
+
+  void vertexAttrib1fv(int indx, Float32List values) => gl.vertexAttrib1fv(indx, values);
+
+  void vertexAttrib2f(int indx, num x, num y) => gl.vertexAttrib2f(indx, x, y);
+
+  void vertexAttrib2fv(int indx, Float32List values) => gl.vertexAttrib2fv(indx, values);
+
+  void vertexAttrib3f(int indx, num x, num y, num z) => gl.vertexAttrib3f(indx, x, y, z);
+
+  void vertexAttrib3fv(int indx, Float32List values) => gl.vertexAttrib3fv(indx, values);
+
+  void vertexAttrib4f(int indx, num x, num y, num z, num w) => gl.vertexAttrib4f(indx, x, y, z, w);
+
+  void vertexAttrib4fv(int indx, Float32List values) => gl.vertexAttrib4fv(indx, values);
+
 }

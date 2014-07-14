@@ -37,11 +37,10 @@ abstract class PostProcessPass {
   }
 
   void _draw(GraphicsContext gc) {
-    var gl = gc.gl;
     gc.useShader(_shader);
     _bindShader(gc);
-    _vertexUVBuffer.bind(gl, _aPosition, _aTexCoord);
-    _vertexUVBuffer.draw(gl);
+    _vertexUVBuffer.bind(gc, _aPosition, _aTexCoord);
+    _vertexUVBuffer.draw(gc);
   }
 }
 
