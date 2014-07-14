@@ -19,25 +19,13 @@ abstract class PostProcessPass {
   void _bindShader(GraphicsContext gc);
   Shader _setupShader(GraphicsContext gc);
 
-  void _createVertexBuffer(GraphicsContext gc) {
-    var vertices = [
-        -1.0, -1.0, 0.0, 0.0, 0.0,
-        -1.0, 1.0, 0.0, 0.0, 1.0,
-        1.0, 1.0, 0.0, 1.0, 1.0,
-        1.0, -1.0, 0.0, 1.0, 0.0,
-    ];
-    _vertexUVBuffer = new VertexUVBuffer(
-        gc.gl, vertices,
-        mode:WebGL.RenderingContext.TRIANGLE_FAN);
-  }
-
   void setup(GraphicsContext gc, int width, int height) {
     _width = width;
     _height = height;
 
     _fboTex = gc.createRGBATexture(width, height);
     _fbo = gc.createFBO(_fboTex, WebGL.COLOR_ATTACHMENT0);
-    _createVertexBuffer(gc);
+    _vertexUVBuffer = new VertexUVBuffer.square(gc);
     _shader = _setupShader(gc);
     _aPosition = _shader.getAttribute('aPosition');
     _aTexCoord = _shader.getAttribute('aTexCoord');

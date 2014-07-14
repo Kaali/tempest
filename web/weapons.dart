@@ -41,19 +41,7 @@ class BulletDrawable {
     _uModelTransform = _shader.getUniform('uModelTransform');
     _aPosition = _shader.getAttribute('aPosition');
     _aUV = _shader.getAttribute('aTexCoord');
-    _setupBuffer(gc.gl);
-  }
-
-  void _setupBuffer(WebGL.RenderingContext gl) {
-    const size = 0.1;
-    var vertices = const <double>[
-      -size, -size, 0.0, 0.0, 0.0,
-      size, -size, 0.0, 1.0, 0.0,
-      size, size, 0.0, 1.0, 1.0,
-      -size, size, 0.0, 0.0, 1.0,
-    ];
-    _vertexUvBuffer = new VertexUVBuffer(gl, vertices,
-        mode:WebGL.RenderingContext.TRIANGLE_FAN);
+    _vertexUvBuffer = new VertexUVBuffer.square(gc, size:0.1);
   }
 
   void render(GraphicsContext gc, Float32List cameraTransform) {

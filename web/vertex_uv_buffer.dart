@@ -40,6 +40,17 @@ class VertexUVBuffer {
     _uvOffset = vertexData.elementSizeInBytes * 3;
   }
 
+  factory VertexUVBuffer.square(GraphicsContext gc, {double size : 1.0}) {
+    var vertices = <double>[
+        -size, -size, 0.0, 0.0, 0.0,
+        size, -size, 0.0, 1.0, 0.0,
+        size, size, 0.0, 1.0, 1.0,
+        -size, size, 0.0, 0.0, 1.0,
+    ];
+    return new VertexUVBuffer(gc.gl, vertices,
+        mode:WebGL.RenderingContext.TRIANGLE_FAN);
+  }
+
   void bind(WebGL.RenderingContext gl, int positionAttribute, int uvAttribute) {
     gl.bindBuffer(WebGL.RenderingContext.ARRAY_BUFFER, _vertexBuffer);
     gl.enableVertexAttribArray(positionAttribute);
