@@ -1,0 +1,37 @@
+{
+  "templates": {
+    "attr": ["aPosition", "aTexCoord"]
+  },
+  "shaders": [
+    {"name": "weapon",
+     "vertex": "weapon_vertex.glsl",
+     "fragment": "weapon_fragment.glsl",
+     "uniforms": ["uCameraTransform", "uModelTransform"],
+     "attributes": ["$attr"]},
+    {"name": "level",
+     "vertex": "level_vertex.glsl",
+     "fragment": "level_fragment.glsl",
+     "uniforms": ["uCameraTransform", "uModelTransform", "uActive"],
+     "attributes": ["$attr"]},
+    {"name": "blend",
+     "vertex": "postprocess_vertex.glsl",
+     "fragment": "blend_fragment.glsl",
+     "uniforms": ["uSampler0", "uSampler1"],
+     "attributes": ["$attr"]},
+    {"name": "capture",
+     "vertex": "postprocess_vertex.glsl",
+     "fragment": "capture_fragment.glsl",
+     "uniforms": ["uSampler0"],
+     "attributes": ["$attr"]},
+    {"name": "gaussian_hor",
+     "vertex": "postprocess_vertex.glsl",
+     "fragment": "gaussian_hor_fragment.glsl",
+     "uniforms": ["uSampler0", "uBlurScale", "uBlurStrength"],
+     "attributes": ["$attr"]},
+    {"name": "scanline",
+     "vertex": "postprocess_vertex.glsl",
+     "fragment": "scanline_fragment.glsl",
+     "uniforms": ["uSampler0", "uSize"],
+     "attributes": ["$attr"]}
+  ]
+}

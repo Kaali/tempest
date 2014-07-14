@@ -7,6 +7,7 @@ import 'dart:web_gl' as WebGL;
 import 'dart:async';
 import 'dart:math' as Math;
 import 'dart:typed_data';
+import 'dart:convert';
 import 'package:vector_math/vector_math.dart';
 
 part 'camera.dart';
@@ -258,41 +259,36 @@ class TempestApplication {
     });
   }
 
+  Future loadShadersFromJson(String name) {
+    List<String> parseList(dynamic templates, List<String> fields) {
+      var items = new List<String>();
+      for (String field in fields) {
+        if (field[0] == '\$') {
+          items.addAll(templates[field.substring(1)]);
+        } else {
+          items.add(field);
+        }
+      }
+      return items;
+    }
+
+    return HttpRequest.getString(name).then((json) {
+      var data = JSON.decode(json);
+      var shaders = new List<Future<Shader>>();
+      for (var shaderInfo in data['shaders']) {
+        var name = shaderInfo['name'];
+        var vertex = shaderInfo['vertex'];
+        var fragment = shaderInfo['fragment'];
+        var uniforms = parseList(data['templates'], shaderInfo['uniforms']);
+        var attributes = parseList(data['templates'], shaderInfo['attributes']);
+        shaders.add(loadShader(name, vertex, fragment, uniforms, attributes));
+      }
+      return Future.wait(shaders, eagerError: true).then((_) => null);
+    });
+  }
+
   Future setupAssets() {
-    var commonAttr = ['aPosition', 'aTexCoord'];
-    var shaders = [
-    loadShader(
-        'weapon',
-        'weapon_vertex.glsl', 'weapon_fragment.glsl',
-        ['uCameraTransform', 'uModelTransform'],
-        commonAttr),
-    loadShader(
-        'level',
-        'level_vertex.glsl', 'level_fragment.glsl',
-        ['uCameraTransform', 'uModelTransform', 'uActive'],
-        commonAttr),
-    loadShader(
-        'blend',
-        'postprocess_vertex.glsl', 'blend_fragment.glsl',
-        ['uSampler0', 'uSampler1'],
-        commonAttr),
-    loadShader(
-        'capture',
-        'postprocess_vertex.glsl', 'capture_fragment.glsl',
-        ['uSampler0'],
-        commonAttr),
-    loadShader(
-        'gaussian_hor',
-        'postprocess_vertex.glsl', 'gaussian_hor_fragment.glsl',
-        ['uBlurScale', 'uBlurStrength', 'uSampler0'],
-        commonAttr),
-    loadShader(
-        'scanline',
-        'postprocess_vertex.glsl', 'scanline_fragment.glsl',
-        ['uSize', 'uSampler0'],
-        commonAttr),
-    ];
-    return Future.wait(shaders).then((_) {
+    return loadShadersFromJson('shaders.json').then((_) {
       tempest = new Tempest(aspectRatio, width, height);
       tempest.setup(gc);
     });
