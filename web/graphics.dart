@@ -11,13 +11,18 @@ class GraphicsContext {
   int _height;
   Shader _currentShader;
   Map<String, Shader> _shaders;
+  List<WebGL.Texture> _boundTextures;
 
   WebGL.RenderingContext get gl => _gl;
 
   GraphicsContext(WebGL.RenderingContext this._gl, int this._width,
                   int this._height)
-      : _shaders = new Map<String, Shader>();
+      : _shaders = new Map<String, Shader>(),
+        _boundTextures = new List.filled(WebGL.TEXTURE31 - WebGL.TEXTURE0, null);
 
+  //
+  // General
+  //
   void clear() {
     gl.viewport(0, 0, _width, _height);
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
@@ -27,6 +32,49 @@ class GraphicsContext {
         WebGL.RenderingContext.DEPTH_BUFFER_BIT);
   }
 
+  //
+  // Textures
+  //
+  WebGL.Texture createRGBATexture(int width, int height) {
+    var tex = gl.createTexture();
+    gl.bindTexture(WebGL.TEXTURE_2D, tex);
+    gl.texParameteri(WebGL.TEXTURE_2D, WebGL.TEXTURE_WRAP_S, WebGL.CLAMP_TO_EDGE);
+    gl.texParameteri(WebGL.TEXTURE_2D, WebGL.TEXTURE_WRAP_T, WebGL.CLAMP_TO_EDGE);
+    gl.texParameteri(WebGL.TEXTURE_2D, WebGL.TEXTURE_MAG_FILTER, WebGL.NEAREST);
+    gl.texParameteri(WebGL.TEXTURE_2D, WebGL.TEXTURE_MIN_FILTER, WebGL.NEAREST);
+    gl.texImage2D(
+        WebGL.TEXTURE_2D, 0, WebGL.RGBA, width, height, 0, WebGL.RGBA,
+        WebGL.UNSIGNED_BYTE, null);
+    return tex;
+  }
+
+  WebGL.Framebuffer createFBO(WebGL.Texture texture, int attachment) {
+    var fbo = gl.createFramebuffer();
+    withBindFramebuffer(fbo, (_) {
+      gl.framebufferTexture2D(
+          WebGL.FRAMEBUFFER, attachment, WebGL.TEXTURE_2D, texture, 0);
+    });
+    return fbo;
+  }
+
+  void withBindFramebuffer(WebGL.Framebuffer framebuffer,
+                           void boundFn(GraphicsContext)) {
+    gl.bindFramebuffer(WebGL.FRAMEBUFFER, framebuffer);
+    try {
+      boundFn(this);
+    } finally {
+      gl.bindFramebuffer(WebGL.FRAMEBUFFER, null);
+    }
+  }
+
+  void bindTexture(WebGL.Texture texture, int number) {
+    gl.activeTexture(WebGL.TEXTURE0 + number);
+    gl.bindTexture(WebGL.TEXTURE_2D, texture);
+  }
+
+  //
+  // Shaders
+  //
   Shader createShader(String name, String vertexShaderSource,
                       String fragmentShaderSource, List<String> uniforms,
                       List<String> attributes) {
@@ -51,4 +99,12 @@ class GraphicsContext {
   }
 
   void useShaderName(String shaderName) => useShader(getShader(shaderName));
+
+  void uniform1i(WebGL.UniformLocation uniform, int value) {
+    gl.uniform1i(uniform, value);
+  }
+
+  void uniform1f(WebGL.UniformLocation uniform, num value) {
+    gl.uniform1f(uniform, value);
+  }
 }

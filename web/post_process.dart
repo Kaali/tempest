@@ -19,29 +19,6 @@ abstract class PostProcessPass {
   void _bindShader(GraphicsContext gc);
   Shader _setupShader(GraphicsContext gc);
 
-  WebGL.Texture _createTexture(GraphicsContext gc, int width, int height) {
-    var gl = gc.gl;
-    var tex = gl.createTexture();
-    gl.bindTexture(WebGL.TEXTURE_2D, tex);
-    gl.texParameteri(WebGL.TEXTURE_2D, WebGL.TEXTURE_WRAP_S, WebGL.CLAMP_TO_EDGE);
-    gl.texParameteri(WebGL.TEXTURE_2D, WebGL.TEXTURE_WRAP_T, WebGL.CLAMP_TO_EDGE);
-    gl.texParameteri(WebGL.TEXTURE_2D, WebGL.TEXTURE_MAG_FILTER, WebGL.NEAREST);
-    gl.texParameteri(WebGL.TEXTURE_2D, WebGL.TEXTURE_MIN_FILTER, WebGL.NEAREST);
-    gl.texImage2D(
-        WebGL.TEXTURE_2D, 0, WebGL.RGBA, width, height, 0, WebGL.RGBA,
-        WebGL.UNSIGNED_BYTE, null);
-    return tex;
-  }
-
-  void _createFBO(GraphicsContext gc) {
-    var gl = gc.gl;
-    _fbo = gl.createFramebuffer();
-    gl.bindFramebuffer(WebGL.FRAMEBUFFER, _fbo);
-    gl.framebufferTexture2D(
-        WebGL.FRAMEBUFFER, WebGL.COLOR_ATTACHMENT0, WebGL.TEXTURE_2D, _fboTex, 0);
-    gl.bindFramebuffer(WebGL.FRAMEBUFFER, null);
-  }
-
   void _createVertexBuffer(GraphicsContext gc) {
     var vertices = [
         -1.0, -1.0, 0.0, 0.0, 0.0,
@@ -58,8 +35,8 @@ abstract class PostProcessPass {
     _width = width;
     _height = height;
 
-    _fboTex = _createTexture(gc, width, height);
-    _createFBO(gc);
+    _fboTex = gc.createRGBATexture(width, height);
+    _fbo = gc.createFBO(_fboTex, WebGL.COLOR_ATTACHMENT0);
     _createVertexBuffer(gc);
     _shader = _setupShader(gc);
     _aPosition = _shader.getAttribute('aPosition');
@@ -67,16 +44,13 @@ abstract class PostProcessPass {
   }
 
   // Capture draws in fun to FBO texture
-  void withBind(GraphicsContext gc, void fun(GraphicsContext gc)) {
-    var gl = gc.gl;
-    gl.bindFramebuffer(WebGL.FRAMEBUFFER, _fbo);
-    fun(gc);
-    gl.bindFramebuffer(WebGL.FRAMEBUFFER, null);
+  void withBind(GraphicsContext gc, void boundFb(GraphicsContext)) {
+    gc.withBindFramebuffer(_fbo, boundFb);
   }
 
   void _draw(GraphicsContext gc) {
     var gl = gc.gl;
-    gl.useProgram(_shader._program);
+    gc.useShader(_shader);
     _bindShader(gc);
     _vertexUVBuffer.bind(gl, _aPosition, _aTexCoord);
     _vertexUVBuffer.draw(gl);
@@ -91,10 +65,8 @@ class CaptureProcess extends PostProcessPass {
 
   @override
   void _bindShader(GraphicsContext gc) {
-    var gl = gc.gl;
-    gl.activeTexture(WebGL.TEXTURE0);
-    gl.bindTexture(WebGL.TEXTURE_2D, outputTex);
-    gl.uniform1i(_uSampler0, 0);
+    gc.bindTexture(outputTex, 0);
+    gc.uniform1i(_uSampler0, 0);
   }
 
   @override
@@ -123,15 +95,13 @@ class GaussianHorizontalPass extends PostProcessPass {
 
   @override
   void _bindShader(GraphicsContext gc) {
-    var gl = gc.gl;
-    gl.activeTexture(WebGL.TEXTURE0);
-    gl.bindTexture(WebGL.TEXTURE_2D, _inputTex);
-    gl.uniform1i(_uSampler0, 0);
+    gc.bindTexture(_inputTex, 0);
+    gc.uniform1i(_uSampler0, 0);
 
-    gl.uniform1f(_uSize, 2.0 / _width);
-    gl.uniform1i(_uBlurAmount, 10);
-    gl.uniform1f(_uBlurScale, 2.0);
-    gl.uniform1f(_uBlurStrength, 0.9);
+    gc.uniform1f(_uSize, 2.0 / _width);
+    gc.uniform1i(_uBlurAmount, 10);
+    gc.uniform1f(_uBlurScale, 2.0);
+    gc.uniform1f(_uBlurStrength, 0.9);
   }
 
   @override
@@ -164,14 +134,11 @@ class BlendPass extends PostProcessPass {
 
   @override
   void _bindShader(GraphicsContext gc) {
-    var gl = gc.gl;
-    gl.activeTexture(WebGL.TEXTURE0);
-    gl.bindTexture(WebGL.TEXTURE_2D, _inputTex1);
-    gl.uniform1i(_uSampler0, 0);
+    gc.bindTexture(_inputTex1, 0);
+    gc.uniform1i(_uSampler0, 0);
 
-    gl.activeTexture(WebGL.TEXTURE1);
-    gl.bindTexture(WebGL.TEXTURE_2D, _inputTex2);
-    gl.uniform1i(_uSampler1, 1);
+    gc.bindTexture(_inputTex2, 1);
+    gc.uniform1i(_uSampler1, 1);
   }
 
   @override
@@ -202,12 +169,9 @@ class ScanlinePass extends PostProcessPass {
 
   @override
   void _bindShader(GraphicsContext gc) {
-    var gl = gc.gl;
-    gl.activeTexture(WebGL.TEXTURE0);
-    gl.bindTexture(WebGL.TEXTURE_2D, _inputTex);
-    gl.uniform1i(_uSampler0, 0);
-
-    gl.uniform1f(_uSize, 2000.0);
+    gc.bindTexture(_inputTex, 0);
+    gc.uniform1i(_uSampler0, 0);
+    gc.uniform1f(_uSize, 2000.0);
   }
 
   @override
