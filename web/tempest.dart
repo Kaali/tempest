@@ -164,8 +164,8 @@ class Tempest {
       gc.clear();
       scene.render(gc, camera.cameraTransform);
     });
-    gaussianPass.process(gc, captureProcess._fboTex);
-    blendPass.process(gc, captureProcess._fboTex, gaussianPass.outputTex);
+    gaussianPass.process(gc, captureProcess.outputTex);
+    blendPass.process(gc, captureProcess.outputTex, gaussianPass.outputTex);
     scanlinePass.draw(gc, blendPass.outputTex);
   }
 
