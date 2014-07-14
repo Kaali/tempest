@@ -9,10 +9,10 @@ class VertexUVBuffer {
   int _mode;
 
   VertexUVBuffer(WebGL.RenderingContext gl, List<double> vertices,
-                 List<int> indices,
-                 {int mode : WebGL.RenderingContext.TRIANGLES}) {
+                 {List<int> indices : null,
+                 int mode : WebGL.RenderingContext.TRIANGLES}) {
     assert(vertices.length % 5 == 0);
-    assert(indices.every((x) => x >= 0 && x < vertices.length / 5));
+    assert(indices == null || indices.every((x) => x >= 0 && x < vertices.length / 5));
 
     _mode = mode;
 
@@ -24,14 +24,18 @@ class VertexUVBuffer {
         vertexData,
         WebGL.RenderingContext.STATIC_DRAW);
 
-    _indexBuffer = gl.createBuffer();
-    gl.bindBuffer(WebGL.RenderingContext.ELEMENT_ARRAY_BUFFER, _indexBuffer);
-    gl.bufferDataTyped(
-        WebGL.RenderingContext.ELEMENT_ARRAY_BUFFER,
-        new Uint16List.fromList(indices),
-        WebGL.RenderingContext.STATIC_DRAW);
+    if (indices != null) {
+      _indexBuffer = gl.createBuffer();
+      gl.bindBuffer(WebGL.RenderingContext.ELEMENT_ARRAY_BUFFER, _indexBuffer);
+      gl.bufferDataTyped(
+          WebGL.RenderingContext.ELEMENT_ARRAY_BUFFER,
+          new Uint16List.fromList(indices),
+          WebGL.RenderingContext.STATIC_DRAW);
+      _vertexCount = indices.length;
+    } else {
+      _vertexCount = (vertices.length / 5).toInt();
+    }
 
-    _vertexCount = indices.length;
     _vertexStride = vertexData.elementSizeInBytes * 5;
     _uvOffset = vertexData.elementSizeInBytes * 3;
   }
@@ -55,9 +59,13 @@ class VertexUVBuffer {
   }
 
   void draw(WebGL.RenderingContext gl) {
-    gl.bindBuffer(WebGL.RenderingContext.ELEMENT_ARRAY_BUFFER, _indexBuffer);
-    gl.drawElements(
-        _mode, _vertexCount,
-        WebGL.RenderingContext.UNSIGNED_SHORT, 0);
+    if (_indexBuffer == null) {
+      gl.drawArrays(_mode, 0, _vertexCount);
+    } else {
+      gl.bindBuffer(WebGL.RenderingContext.ELEMENT_ARRAY_BUFFER, _indexBuffer);
+      gl.drawElements(
+          _mode, _vertexCount,
+          WebGL.RenderingContext.UNSIGNED_SHORT, 0);
+    }
   }
 }

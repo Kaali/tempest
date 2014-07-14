@@ -52,8 +52,7 @@ class BulletDrawable {
       size, size, 0.0, 1.0, 1.0,
       -size, size, 0.0, 0.0, 1.0,
     ];
-    var indices = const <int>[0, 1, 2, 3];
-    _vertexUvBuffer = new VertexUVBuffer(gl, vertices, indices,
+    _vertexUvBuffer = new VertexUVBuffer(gl, vertices,
         mode:WebGL.RenderingContext.TRIANGLE_FAN);
   }
 

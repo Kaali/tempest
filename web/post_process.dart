@@ -27,7 +27,7 @@ abstract class PostProcessPass {
         1.0, -1.0, 0.0, 1.0, 0.0,
     ];
     _vertexUVBuffer = new VertexUVBuffer(
-        gc.gl, vertices, [0, 1, 2, 3],
+        gc.gl, vertices,
         mode:WebGL.RenderingContext.TRIANGLE_FAN);
   }
 

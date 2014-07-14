@@ -11,8 +11,7 @@ class LevelFace {
   LevelFace(int this._index, List<double> this._faces);
 
   void setup(WebGL.RenderingContext gl) {
-    var indices = new List.generate((_faces.length / 5).toInt(), (idx) => idx);
-    _vertexUVBuffer = new VertexUVBuffer(gl, _faces, indices,
+    _vertexUVBuffer = new VertexUVBuffer(gl, _faces,
         mode:WebGL.RenderingContext.TRIANGLE_STRIP);
   }
 
