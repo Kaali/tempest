@@ -18,6 +18,15 @@ class GraphicsContext {
                   int this._height)
       : _shaders = new Map<String, Shader>();
 
+  void clear() {
+    gl.viewport(0, 0, _width, _height);
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.clearDepth(1.0);
+    gl.clear(
+        WebGL.RenderingContext.COLOR_BUFFER_BIT |
+        WebGL.RenderingContext.DEPTH_BUFFER_BIT);
+  }
+
   Shader createShader(String name, String vertexShaderSource,
                       String fragmentShaderSource, List<String> uniforms,
                       List<String> attributes) {

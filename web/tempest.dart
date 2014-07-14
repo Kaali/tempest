@@ -160,21 +160,10 @@ class Tempest {
   }
 
   void render(double timeStep, GraphicsContext gc) {
-    var gl = gc.gl;
-    void draw(GraphicsContext gc) {
-      var gl = gc.gl;
-      gl.viewport(0, 0, width, height);
-      gl.clearColor(0.0, 0.0, 0.0, 1.0);
-      gl.clearDepth(1.0);
-      gl.clear(
-          WebGL.RenderingContext.COLOR_BUFFER_BIT |
-          WebGL.RenderingContext.DEPTH_BUFFER_BIT);
-      var cameraTransform = camera.cameraTransform;
-
-      // TODO: Depth buffer doesn't work without extensions in WebGL 1.x do a scene sort
-      scene.render(gc, cameraTransform);
-    }
-    captureProcess.withBind(gc, draw);
+    captureProcess.withBind(gc, (gc) {
+      gc.clear();
+      scene.render(gc, camera.cameraTransform);
+    });
     gaussianPass.process(gc, captureProcess._fboTex);
     blendPass.process(gc, captureProcess._fboTex, gaussianPass.outputTex);
     scanlinePass.draw(gc, blendPass.outputTex);
