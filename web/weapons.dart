@@ -1,23 +1,5 @@
 part of tempest;
 
-class BulletPool {
-  List<Bullet> _bullets;
-
-  BulletPool(int count) : _bullets = new List<Bullet>() {
-    var zero = new Vector3(0.0, 0.0, 0.0);
-    for (var i = 0; i < count; ++i) {
-      var bullet = new Bullet(zero, zero);
-      bullet.destroyed = true;
-      _bullets.add(bullet);
-    }
-  }
-
-  Bullet get() {
-    // TODO: Optimize lookup with free lists
-    return _bullets.firstWhere((bullet) => bullet.destroyed, orElse: () => null);
-  }
-}
-
 // TODO: Refactor as general drawable wireframe object
 // TODO: Almost identical code is in Level
 class BulletDrawable {
@@ -60,7 +42,10 @@ class BulletDrawable {
 
 class Bullet extends GameObject {
   static final BulletDrawable _bulletDrawable = new BulletDrawable();
-  static final BulletPool _pool = new BulletPool(50);
+  static final ZERO = new Vector3(0.0, 0.0, 0.0);
+  static final ObjectPool<Bullet> _pool =
+      new ObjectPool<Bullet>(50, () => new Bullet(ZERO, ZERO),
+          (b) => b.destroyed = true, (b) => b.destroyed);
 
   Vector3 _position;
   Vector3 _velocity;

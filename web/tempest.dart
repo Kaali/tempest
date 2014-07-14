@@ -19,6 +19,7 @@ part 'action.dart';
 part 'weapons.dart';
 part 'scene.dart';
 part 'graphics.dart';
+part 'object_pool.dart';
 
 double timestamp() {
   if (window.performance != null) {
