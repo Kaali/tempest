@@ -65,13 +65,6 @@ class Bullet extends GameObject {
     return bullet;
   }
 
-  void reset(Vector3 position, Vector3 velocity, double lifetime) {
-    _position = position.clone();
-    _velocity = velocity.clone();
-    _lifetime = lifetime;
-    destroyed = false;
-  }
-
   @override
   void setup(GraphicsContext gc) {
     if (!_bulletDrawable.initialized) _bulletDrawable.setup(gc);
