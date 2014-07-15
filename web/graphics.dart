@@ -73,8 +73,11 @@ class GraphicsContext {
   }
 
   void bindTexture(WebGL.Texture texture, int number) {
-    gl.activeTexture(WebGL.TEXTURE0 + number);
-    gl.bindTexture(WebGL.TEXTURE_2D, texture);
+    if (_boundTextures[number] != texture) {
+      gl.activeTexture(WebGL.TEXTURE0 + number);
+      gl.bindTexture(WebGL.TEXTURE_2D, texture);
+      _boundTextures[number] = texture;
+    }
   }
 
   WebGL.Renderbuffer createRenderbuffer(int width, int height,
