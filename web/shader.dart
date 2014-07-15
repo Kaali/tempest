@@ -67,7 +67,13 @@ class Shader {
 
   void _setupProgram(WebGL.RenderingContext gl, List<String> uniforms,
                      List<String> attributes) {
-    uniforms.forEach((name) => _uniforms[name] = gl.getUniformLocation(_program, name));
-    attributes.forEach((name) => _attributes[name] = gl.getAttribLocation(_program, name));
+    uniforms.forEach((name) {
+      _uniforms[name] = gl.getUniformLocation(_program, name);
+      assert(_uniforms[name] != null);
+    });
+    attributes.forEach((name) {
+      _attributes[name] = gl.getAttribLocation(_program, name);
+      assert(_attributes[name] != null);
+    });
   }
 }
