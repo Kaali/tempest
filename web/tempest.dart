@@ -96,12 +96,13 @@ class Tempest {
     moveAction = new MoveAction(actionManager);
 
     scene = new Scene();
+    bulletNode = new SceneNode();
+    scene.add(bulletNode);
+
     levelNode = new SceneNode();
     levelNode.add(level);
     scene.add(levelNode);
 
-    bulletNode = new SceneNode();
-    scene.add(bulletNode);
 
     camera.eyePosition = _cameraPosition();
     level.setPlayerPosition(gameState.playerPosition);

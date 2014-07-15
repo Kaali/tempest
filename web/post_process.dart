@@ -32,8 +32,8 @@ abstract class PostProcessPass {
   }
 
   // Capture draws in fun to FBO texture
-  void withBind(GraphicsContext gc, void boundFb(GraphicsContext)) {
-    gc.withBindFramebuffer(_fbo, boundFb);
+  void withBind(GraphicsContext gc, void boundFn(GraphicsContext)) {
+    gc.withBindFramebuffer(_fbo, boundFn);
   }
 
   void _draw(GraphicsContext gc) {
@@ -46,8 +46,16 @@ abstract class PostProcessPass {
 
 class CaptureProcess extends PostProcessPass {
   WebGL.UniformLocation _uSampler0;
+  WebGL.Renderbuffer _renderbuffer;
 
   CaptureProcess() {
+  }
+
+  @override
+  void setup(GraphicsContext gc, int width, int height) {
+    super.setup(gc, width, height);
+    _renderbuffer = gc.createRenderbuffer(width, height, WebGL.DEPTH_COMPONENT16);
+    gc.attachFramebufferRenderbuffer(_fbo, _renderbuffer, WebGL.DEPTH_ATTACHMENT);
   }
 
   @override

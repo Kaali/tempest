@@ -25,6 +25,7 @@ class GraphicsContext {
   //
   void clear() {
     gl.viewport(0, 0, _width, _height);
+    gl.enable(WebGL.DEPTH_TEST);
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.clearDepth(1.0);
     gl.clear(
@@ -70,6 +71,37 @@ class GraphicsContext {
   void bindTexture(WebGL.Texture texture, int number) {
     gl.activeTexture(WebGL.TEXTURE0 + number);
     gl.bindTexture(WebGL.TEXTURE_2D, texture);
+  }
+
+  WebGL.Renderbuffer createRenderbuffer(int width, int height,
+                                        int internalFormat) {
+    var rb = gl.createRenderbuffer();
+    withBindRenderbuffer(rb, (_) {
+      gl.renderbufferStorage(WebGL.RENDERBUFFER, internalFormat, width, height);
+    });
+    return rb;
+  }
+
+  void attachFramebufferRenderbuffer(WebGL.Framebuffer fb, WebGL.Renderbuffer rb,
+                         int attachment) {
+    assert(rb != null);
+    assert(fb != null);
+    gl.bindFramebuffer(WebGL.FRAMEBUFFER, fb);
+    gl.bindRenderbuffer(WebGL.RENDERBUFFER, rb);
+    gl.framebufferRenderbuffer(WebGL.FRAMEBUFFER, attachment,
+        WebGL.RENDERBUFFER, rb);
+    gl.bindRenderbuffer(WebGL.RENDERBUFFER, null);
+    gl.bindFramebuffer(WebGL.FRAMEBUFFER, null);
+  }
+
+  void withBindRenderbuffer(WebGL.Renderbuffer rb,
+                            void boundFn(GraphicsContext)) {
+    gl.bindRenderbuffer(WebGL.RENDERBUFFER, rb);
+    try {
+      boundFn(this);
+    } finally {
+      gl.bindRenderbuffer(WebGL.RENDERBUFFER, null);
+    }
   }
 
   //
