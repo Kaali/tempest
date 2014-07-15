@@ -26,7 +26,7 @@
     {"name": "gaussian_hor",
      "vertex": "postprocess_vertex.glsl",
      "fragment": "gaussian_hor_fragment.glsl",
-     "uniforms": ["uSampler0", "uBlurScale", "uBlurStrength"],
+     "uniforms": ["uSampler0", "uSize", "uBlurAmount", "uBlurScale", "uBlurStrength"],
      "attributes": ["$attr"]},
     {"name": "scanline",
      "vertex": "postprocess_vertex.glsl",
