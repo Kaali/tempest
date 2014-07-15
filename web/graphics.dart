@@ -12,13 +12,17 @@ class GraphicsContext {
   Shader _currentShader;
   Map<String, Shader> _shaders;
   List<WebGL.Texture> _boundTextures;
+  List<WebGL.Framebuffer> _framebufferStack;
+  List<WebGL.Renderbuffer> _renderbufferStack;
 
   WebGL.RenderingContext get gl => _gl;
 
   GraphicsContext(WebGL.RenderingContext this._gl, int this._width,
                   int this._height)
       : _shaders = new Map<String, Shader>(),
-        _boundTextures = new List.filled(WebGL.TEXTURE31 - WebGL.TEXTURE0, null);
+        _boundTextures = new List.filled(WebGL.TEXTURE31 - WebGL.TEXTURE0, null),
+        _framebufferStack = <WebGL.Framebuffer>[],
+        _renderbufferStack = <WebGL.Renderbuffer>[];
 
   //
   // General
@@ -60,11 +64,11 @@ class GraphicsContext {
 
   void withBindFramebuffer(WebGL.Framebuffer framebuffer,
                            void boundFn(GraphicsContext)) {
-    gl.bindFramebuffer(WebGL.FRAMEBUFFER, framebuffer);
+    bindFramebuffer(framebuffer);
     try {
       boundFn(this);
     } finally {
-      gl.bindFramebuffer(WebGL.FRAMEBUFFER, null);
+      unbindFramebuffer();
     }
   }
 
@@ -86,21 +90,53 @@ class GraphicsContext {
                          int attachment) {
     assert(rb != null);
     assert(fb != null);
-    gl.bindFramebuffer(WebGL.FRAMEBUFFER, fb);
-    gl.bindRenderbuffer(WebGL.RENDERBUFFER, rb);
+    bindFramebuffer(fb);
+    bindRenderbuffer(rb);
     gl.framebufferRenderbuffer(WebGL.FRAMEBUFFER, attachment,
         WebGL.RENDERBUFFER, rb);
-    gl.bindRenderbuffer(WebGL.RENDERBUFFER, null);
-    gl.bindFramebuffer(WebGL.FRAMEBUFFER, null);
+    unbindRenderbuffer();
+    unbindFramebuffer();
   }
 
   void withBindRenderbuffer(WebGL.Renderbuffer rb,
                             void boundFn(GraphicsContext)) {
-    gl.bindRenderbuffer(WebGL.RENDERBUFFER, rb);
+    bindRenderbuffer(rb);
     try {
       boundFn(this);
     } finally {
-      gl.bindRenderbuffer(WebGL.RENDERBUFFER, null);
+      unbindRenderbuffer();
+    }
+  }
+
+  void bindFramebuffer(WebGL.Framebuffer fb) {
+    if (_framebufferStack.isEmpty || _framebufferStack.last != fb) {
+      gl.bindFramebuffer(WebGL.FRAMEBUFFER, fb);
+    }
+    _framebufferStack.add(fb);
+  }
+
+  void unbindFramebuffer() {
+    assert(_framebufferStack.isNotEmpty);
+    var current = _framebufferStack.removeLast();
+    var next = _framebufferStack.isEmpty ? null : _framebufferStack.last;
+    if (next != current) {
+      gl.bindFramebuffer(WebGL.FRAMEBUFFER, next);
+    }
+  }
+
+  void bindRenderbuffer(WebGL.Renderbuffer rb) {
+    if (_renderbufferStack.isEmpty || _renderbufferStack.last != rb) {
+      gl.bindRenderbuffer(WebGL.RENDERBUFFER, rb);
+    }
+    _renderbufferStack.add(rb);
+  }
+
+  void unbindRenderbuffer() {
+    assert(_renderbufferStack.isNotEmpty);
+    var current = _renderbufferStack.removeLast();
+    var next = _renderbufferStack.isEmpty ? null : _renderbufferStack.last;
+    if (next != current) {
+      gl.bindRenderbuffer(WebGL.RENDERBUFFER, next);
     }
   }
 
