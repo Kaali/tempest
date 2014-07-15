@@ -11,9 +11,15 @@ class GraphicsContext {
   int _height;
   Shader _currentShader;
   Map<String, Shader> _shaders;
+
+  // State store
   List<WebGL.Texture> _boundTextures;
   List<WebGL.Framebuffer> _framebufferStack;
   List<WebGL.Renderbuffer> _renderbufferStack;
+  List<int> _viewport;
+  Map<int, bool> _capabilities;
+  List<double> _clearColor;
+  double _clearDepth;
 
   WebGL.RenderingContext get gl => _gl;
 
@@ -22,19 +28,67 @@ class GraphicsContext {
       : _shaders = new Map<String, Shader>(),
         _boundTextures = new List.filled(WebGL.TEXTURE31 - WebGL.TEXTURE0, null),
         _framebufferStack = <WebGL.Framebuffer>[],
-        _renderbufferStack = <WebGL.Renderbuffer>[];
+        _renderbufferStack = <WebGL.Renderbuffer>[],
+        _viewport = new List<int>(4),
+        _capabilities = <int, bool>{},
+        _clearColor = new List<double>(4);
 
   //
   // General
   //
   void clear() {
-    gl.viewport(0, 0, _width, _height);
-    gl.enable(WebGL.DEPTH_TEST);
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
-    gl.clearDepth(1.0);
+    viewport(0, 0, _width, _height);
+    enable(WebGL.DEPTH_TEST);
+    clearColor(0.0, 0.0, 0.0, 1.0);
+    clearDepth(1.0);
     gl.clear(
         WebGL.RenderingContext.COLOR_BUFFER_BIT |
         WebGL.RenderingContext.DEPTH_BUFFER_BIT);
+  }
+
+  void viewport(int x, int y, int width, int height) {
+    if (_viewport[0] != x || _viewport[1] != y || _viewport[2] != width ||
+        _viewport[3] != height) {
+      gl.viewport(x, y, width, height);
+      _viewport[0] = x;
+      _viewport[1] = y;
+      _viewport[2] = width;
+      _viewport[3] = height;
+    }
+  }
+
+  void clearColor(double r, double g, double b, double a) {
+    if (_clearColor[0] != r || _clearColor[1] != g || _clearColor[2] != b ||
+    _clearColor[3] != a) {
+      gl.clearColor(r, g, b, a);
+      _clearColor[0] = r;
+      _clearColor[1] = g;
+      _clearColor[2] = b;
+      _clearColor[3] = a;
+    }
+  }
+
+  void clearDepth(double depth) {
+    if (_clearDepth == null || _clearDepth != depth) {
+      gl.clearDepth(depth);
+      _clearDepth = depth;
+    }
+  }
+
+  void enable(int capability) {
+    var cur = _capabilities[capability];
+    if (cur == null || !cur) {
+      gl.enable(capability);
+      _capabilities[capability] = true;
+    }
+  }
+
+  void disable(int capability) {
+    var cur = _capabilities[capability];
+    if (cur == null || cur) {
+      gl.disable(capability);
+      _capabilities[capability] = false;
+    }
   }
 
   //
